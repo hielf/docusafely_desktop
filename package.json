@@ -1,0 +1,80 @@
+{
+  "name": "docusafely-desktop",
+  "version": "1.0.0",
+  "main": "src/main.js",
+  "description": "DocuSafely Desktop - Document masking and PII detection application",
+  "author": "hielf",
+  "license": "ISC",
+  "homepage": "https://github.com/hielf/docusafely-desktop",
+  "scripts": {
+    "start": "electron .",
+    "prebuild": "node scripts/bundle-backend.js",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "build:all": "electron-builder --win --mac --linux",
+    "dist": "npm run build",
+    "test:js": "jest --runInBand",
+    "test": "npm run test:js"
+  },
+  "keywords": ["electron", "document-masking", "pii-detection", "privacy", "desktop-app"],
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^38.1.0",
+    "electron-builder": "^26.0.12",
+    "jest": "^29.7.0"
+  },
+  "build": {
+    "appId": "com.docusafely.desktop",
+    "productName": "DocuSafely",
+    "icon": "build/icon.ico",
+    "directories": {
+      "output": "dist"
+    },
+    "asar": true,
+    "compression": "maximum",
+    "files": [
+      "src/main.js",
+      "src/preload.js",
+      "src/index.html",
+      "backend/dist/**/*",
+      "example/sample.txt"
+    ],
+    "extraFiles": [
+      {
+        "from": "backend/dist",
+        "to": "backend/dist"
+      }
+    ],
+    "extraResources": [
+      {
+        "from": "backend/dist",
+        "to": "backend/dist"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": ["x64"]
+        }
+      ],
+      "requestedExecutionLevel": "asInvoker",
+      "electronLanguages": ["en"],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "DocuSafely"
+    },
+    "portable": {
+      "artifactName": "DocuSafely Portable.exe"
+    }
+  }
+}
+

@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doc Masking - Text Processor</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #007acc;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: #007acc;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover {
+            background-color: #005a9e;
+        }
+        
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        /* Green style when ready to download */
+        button.download-ready {
+            background-color: #28a745;
+        }
+        button.download-ready:hover {
+            background-color: #1e7e34;
+        }
+        
+        .process-btn {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 20px;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            min-height: 50px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        
+        .status.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .status.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .status.info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>[DOC] Doc Masking - Text Processor</h1>
+        
+        <div class="form-group">
+            <label for="inputPath">Input File Path:</label>
+            <div class="input-group">
+                <input type="text" id="inputPath" placeholder="Select or enter input file path...">
+                <button type="button" id="selectInputBtn">Browse</button>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Entity Policy:</label>
+            <div id="policy-advanced" style="margin-top:10px; padding:10px; border:1px solid #eee; border-radius:6px; background:#fafafa;">
+                <div style="margin-bottom:6px; color:#333; font-weight:500;">Select entities to mask:</div>
+                <div style="display:grid; grid-template-columns: repeat(2, minmax(200px, 1fr)); gap:8px;">
+                    <label><input type="checkbox" class="entity-checkbox" data-entity="person_name" checked> Person Name</label>
+                    <label><input type="checkbox" class="entity-checkbox" data-entity="email" checked> Email</label>
+                    <label><input type="checkbox" class="entity-checkbox" data-entity="phone" checked> Phone</label>
+                    <label><input type="checkbox" class="entity-checkbox" data-entity="address" checked> Address</label>
+                    <label><input type="checkbox" class="entity-checkbox" data-entity="postal_code" checked> Postal Code</label>
+                    <label><input type="checkbox" class="entity-checkbox" data-entity="government_id" checked> Government ID</label>
+                    <label><input type="checkbox" class="entity-checkbox" data-entity="financial" checked> Financial</label>
+                    <label><input type="checkbox" class="entity-checkbox" data-entity="credentials" checked> Credentials/Secrets</label>
+                    <label><input type="checkbox" class="entity-checkbox" data-entity="health" checked> Health/PHI</label>
+                    <label><input type="checkbox" class="entity-checkbox" data-entity="metadata" checked> Metadata/IDs</label>
+                </div>
+                <div style="margin-top:8px; font-size:12px; color:#666;">Note: PDF masking currently supports Email, Phone, and US ZIP; text files support more via regex.</div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="generateReport" checked> Generate dry-run report
+            </label>
+        </div>
+        
+        <div class="form-group">
+            <button class="process-btn" id="processBtn">Process File</button>
+            <button class="process-btn" id="previewBtn" style="margin-left: 10px; background: #28a745;">Preview Masking</button>
+        </div>
+        
+        <div id="preview-section" style="display: none; margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 6px; background: #f9f9f9;">
+            <h3>Masking Preview</h3>
+            <div id="preview-content">
+                <p>Click "Preview Masking" to see what entities will be detected and masked.</p>
+            </div>
+        </div>
+        
+        <div class="status info" id="status">
+            Ready to process files. Select an input file, then click "Process File" or "Preview Masking".
+        </div>
+    </div>
+
+    <script>
+        const inputPathEl = document.getElementById('inputPath');
+        const selectInputBtn = document.getElementById('selectInputBtn');
+        const processBtn = document.getElementById('processBtn');
+        const previewBtn = document.getElementById('previewBtn');
+        const statusEl = document.getElementById('status');
+        const previewSection = document.getElementById('preview-section');
+        const previewContent = document.getElementById('preview-content');
+        const generateReportCheckbox = document.getElementById('generateReport');
+        const entityCheckboxes = () => Array.from(document.querySelectorAll('.entity-checkbox'));
+
+        function updateStatus(message, type = 'info') {
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+        
+        let isDownloadReady = false;
+        let tempOutputPath = null;
+
+        selectInputBtn.addEventListener('click', async () => {
+            try {
+                const filePath = await window.electronAPI.selectInputFile();
+                if (filePath) {
+                    inputPathEl.value = filePath;
+                    updateStatus(`Selected input file: ${filePath}`, 'info');
+                }
+            } catch (error) {
+                updateStatus(`Error selecting input file: ${error.message}`, 'error');
+            }
+        });
+
+        processBtn.addEventListener('click', async () => {
+            // If a processed file is ready, clicking will trigger download/save
+            if (isDownloadReady && tempOutputPath) {
+                try {
+                    const savePath = await window.electronAPI.selectOutputFile();
+                    if (savePath) {
+                        const saveResult = await window.electronAPI.copyFile(tempOutputPath, savePath, true);
+                        if (saveResult.status === 'success') {
+                            updateStatus(`[SUCCESS] File saved to: ${saveResult.dest}`, 'success');
+                            // Reset button back to normal state
+                            isDownloadReady = false;
+                            tempOutputPath = null;
+                            processBtn.textContent = 'Process File';
+                            processBtn.classList.remove('download-ready');
+                        } else {
+                            updateStatus(`[ERROR] Failed to save file: ${saveResult.message || 'Unknown error'}`, 'error');
+                        }
+                    } else {
+                        updateStatus('[WARNING] Save cancelled. Click "Save Now" to try again.', 'info');
+                    }
+                } catch (error) {
+                    updateStatus(`[ERROR] Unexpected error during save: ${error.message}`, 'error');
+                }
+                return;
+            }
+
+            const inputPath = inputPathEl.value.trim();
+
+            if (!inputPath) {
+                updateStatus('Please select an input file.', 'error');
+                return;
+            }
+
+            // Prepare button for processing state
+            processBtn.classList.remove('download-ready');
+            processBtn.disabled = true;
+            processBtn.textContent = 'Processing...';
+            updateStatus('Processing file... Please wait.', 'info');
+
+            try {
+                const policy = {
+                    entities: entityCheckboxes()
+                        .filter((el) => el.checked)
+                        .map((el) => el.getAttribute('data-entity'))
+                };
+                const result = await window.electronAPI.processDocument({ inputPath, policy });
+
+                if (result.status === 'success') {
+                    tempOutputPath = result.output;
+                    isDownloadReady = true;
+                    updateStatus(`[SUCCESS] ${result.message}\nClick "Save Now" to save the processed file.`, 'success');
+                    processBtn.textContent = 'Save Now';
+                    processBtn.classList.add('download-ready');
+                    processBtn.disabled = false;
+                } else {
+                    updateStatus(`[ERROR] Error: ${result.message}\n${result.error || ''}`, 'error');
+                    processBtn.disabled = false;
+                    processBtn.textContent = 'Process File';
+                }
+            } catch (error) {
+                updateStatus(`[ERROR] Unexpected error: ${error.message}`, 'error');
+                processBtn.disabled = false;
+                processBtn.textContent = 'Process File';
+            }
+        });
+
+        previewBtn.addEventListener('click', async () => {
+            const inputPath = inputPathEl.value.trim();
+
+            if (!inputPath) {
+                updateStatus('Please select an input file.', 'error');
+                return;
+            }
+
+            // Prepare button for processing state
+            previewBtn.disabled = true;
+            previewBtn.textContent = 'Analyzing...';
+            updateStatus('Analyzing file for entities... Please wait.', 'info');
+
+            try {
+                const policy = {
+                    entities: entityCheckboxes()
+                        .filter((el) => el.checked)
+                        .map((el) => el.getAttribute('data-entity'))
+                };
+                
+                // Generate dry-run report
+                const result = await window.electronAPI.generateDryRunReport({ inputPath, policy });
+
+                if (result.status === 'success') {
+                    // Show preview section
+                    previewSection.style.display = 'block';
+                    
+                    // Display preview content
+                    const entitiesFound = result.entities_found || 0;
+                    const entitiesByType = result.entities_by_type || {};
+                    
+                    let previewHtml = `<h4>Analysis Results</h4>`;
+                    previewHtml += `<p><strong>Total entities found:</strong> ${entitiesFound}</p>`;
+                    
+                    if (entitiesFound > 0) {
+                        previewHtml += `<h5>Entities by type:</h5><ul>`;
+                        for (const [entityType, count] of Object.entries(entitiesByType)) {
+                            previewHtml += `<li><strong>${entityType}:</strong> ${count}</li>`;
+                        }
+                        previewHtml += `</ul>`;
+                        
+                        if (result.report_files) {
+                            previewHtml += `<h5>Report files generated:</h5><ul>`;
+                            for (const [format, filePath] of Object.entries(result.report_files)) {
+                                previewHtml += `<li><strong>${format}:</strong> ${filePath}</li>`;
+                            }
+                            previewHtml += `</ul>`;
+                        }
+                    } else {
+                        previewHtml += `<p>No sensitive entities detected with the current policy.</p>`;
+                    }
+                    
+                    previewContent.innerHTML = previewHtml;
+                    updateStatus(`[SUCCESS] Preview generated. Found ${entitiesFound} entities.`, 'success');
+                } else {
+                    updateStatus(`[ERROR] Preview failed: ${result.message}`, 'error');
+                    previewSection.style.display = 'none';
+                }
+            } catch (error) {
+                updateStatus(`[ERROR] Preview error: ${error.message}`, 'error');
+                previewSection.style.display = 'none';
+            } finally {
+                previewBtn.disabled = false;
+                previewBtn.textContent = 'Preview Masking';
+            }
+        });
+    </script>
+</body>
+</html>
