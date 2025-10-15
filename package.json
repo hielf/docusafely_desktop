@@ -84,6 +84,16 @@
     },
     "portable": {
       "artifactName": "DocuSafely Portable.exe"
-    }
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm"
+      ],
+      "category": "Utility",
+      "maintainer": "hielf"
+    },
+    "publish": null
   }
 }
