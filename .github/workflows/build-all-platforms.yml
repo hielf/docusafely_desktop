@@ -1,0 +1,271 @@
+name: Build DocuSafely Desktop - All Platforms
+
+on:
+  push:
+    branches: [ main, master ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  # ====================
+  # Build Python Backends
+  # ====================
+  
+  build-backend-windows:
+    name: Build Backend - Windows
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install Python dependencies
+        working-directory: ../docusafely_core
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+      
+      - name: Build Windows backend with PyInstaller
+        working-directory: ../docusafely_core
+        run: python build_executable.py
+      
+      - name: Upload Windows backend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-windows
+          path: ../docusafely_core/dist/processor.exe
+          retention-days: 7
+
+  build-backend-macos:
+    name: Build Backend - macOS
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install Python dependencies
+        working-directory: ../docusafely_core
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+      
+      - name: Build macOS backend with PyInstaller
+        working-directory: ../docusafely_core
+        run: python build_executable.py
+      
+      - name: Upload macOS backend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-macos
+          path: ../docusafely_core/dist/processor
+          retention-days: 7
+
+  build-backend-linux:
+    name: Build Backend - Linux
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install Python dependencies
+        working-directory: ../docusafely_core
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+      
+      - name: Build Linux backend with PyInstaller
+        working-directory: ../docusafely_core
+        run: python build_executable.py
+      
+      - name: Upload Linux backend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-linux
+          path: ../docusafely_core/dist/processor
+          retention-days: 7
+
+  # ====================
+  # Build Desktop Apps
+  # ====================
+
+  build-windows:
+    name: Build Desktop - Windows
+    needs: build-backend-windows
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Download Windows backend
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-windows
+          path: backend/dist
+      
+      - name: Install npm dependencies
+        run: npm ci
+      
+      - name: Build Windows desktop app
+        run: npm run build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installers
+          path: |
+            dist/*.exe
+            dist/*.zip
+          retention-days: 30
+
+  build-macos:
+    name: Build Desktop - macOS
+    needs: build-backend-macos
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Download macOS backend
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-macos
+          path: backend/dist
+      
+      - name: Make backend executable
+        run: chmod +x backend/dist/processor
+      
+      - name: Install npm dependencies
+        run: npm ci
+      
+      - name: Build macOS desktop app
+        run: npm run build:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-installers
+          path: |
+            dist/*.dmg
+            dist/*.zip
+          retention-days: 30
+
+  build-linux:
+    name: Build Desktop - Linux
+    needs: build-backend-linux
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Download Linux backend
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-linux
+          path: backend/dist
+      
+      - name: Make backend executable
+        run: chmod +x backend/dist/processor
+      
+      - name: Install npm dependencies
+        run: npm ci
+      
+      - name: Build Linux desktop app
+        run: npm run build:linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-installers
+          path: |
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.rpm
+          retention-days: 30
+
+  # ====================
+  # Create Release (on tags)
+  # ====================
+
+  release:
+    name: Create Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/windows-installers/*
+            artifacts/macos-installers/*
+            artifacts/linux-installers/*
+          draft: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

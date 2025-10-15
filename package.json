@@ -18,7 +18,13 @@
     "test:js": "jest --runInBand",
     "test": "npm run test:js"
   },
-  "keywords": ["electron", "document-masking", "pii-detection", "privacy", "desktop-app"],
+  "keywords": [
+    "electron",
+    "document-masking",
+    "pii-detection",
+    "privacy",
+    "desktop-app"
+  ],
   "dependencies": {},
   "devDependencies": {
     "electron": "^38.1.0",
@@ -28,7 +34,7 @@
   "build": {
     "appId": "com.docusafely.desktop",
     "productName": "DocuSafely",
-    "icon": "build/icon.ico",
+    "icon": "build/icon.png",
     "directories": {
       "output": "dist"
     },
@@ -57,11 +63,15 @@
       "target": [
         {
           "target": "dir",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "requestedExecutionLevel": "asInvoker",
-      "electronLanguages": ["en"],
+      "electronLanguages": [
+        "en"
+      ],
       "icon": "build/icon.ico",
       "signAndEditExecutable": false
     },
@@ -77,4 +87,3 @@
     }
   }
 }
-
