@@ -41,7 +41,7 @@ describe('process-document handler', () => {
     }));
 
     // Now require main.js which registers the handler
-    require('../../main.js');
+    require('../../src/main.js');
 
     const call = ipcMain.handle.mock.calls.find(c => c[0] === 'process-document');
     expect(call).toBeTruthy();
@@ -60,6 +60,6 @@ describe('process-document handler', () => {
     // First spawn should be python (since compiled missing)
     const [cmd, args] = spawn.mock.calls[0];
     expect(/python3|python/.test(cmd)).toBe(true);
-    expect(args[0]).toMatch(/python_backend[\/\\]processor\.py$/);
+    expect(args[0]).toMatch(/backend[\/\\]processor\.py$/);
   });
 });
