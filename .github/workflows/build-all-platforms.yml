@@ -19,32 +19,34 @@ jobs:
     runs-on: windows-latest
     
     steps:
-      - name: Checkout code
+      - name: Checkout docusafely_core
         uses: actions/checkout@v4
         with:
-          submodules: true
+          repository: hielf/docusafely_core
+          path: docusafely_core
       
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
+          cache-dependency-path: docusafely_core/requirements.txt
       
       - name: Install Python dependencies
-        working-directory: ../docusafely_core
+        working-directory: docusafely_core
         run: |
           pip install -r requirements.txt
           pip install pyinstaller
       
       - name: Build Windows backend with PyInstaller
-        working-directory: ../docusafely_core
+        working-directory: docusafely_core
         run: python build_executable.py
       
       - name: Upload Windows backend artifact
         uses: actions/upload-artifact@v4
         with:
           name: backend-windows
-          path: ../docusafely_core/dist/processor.exe
+          path: docusafely_core/dist/processor.exe
           retention-days: 7
 
   build-backend-macos:
@@ -52,32 +54,34 @@ jobs:
     runs-on: macos-latest
     
     steps:
-      - name: Checkout code
+      - name: Checkout docusafely_core
         uses: actions/checkout@v4
         with:
-          submodules: true
+          repository: hielf/docusafely_core
+          path: docusafely_core
       
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
+          cache-dependency-path: docusafely_core/requirements.txt
       
       - name: Install Python dependencies
-        working-directory: ../docusafely_core
+        working-directory: docusafely_core
         run: |
           pip install -r requirements.txt
           pip install pyinstaller
       
       - name: Build macOS backend with PyInstaller
-        working-directory: ../docusafely_core
+        working-directory: docusafely_core
         run: python build_executable.py
       
       - name: Upload macOS backend artifact
         uses: actions/upload-artifact@v4
         with:
           name: backend-macos
-          path: ../docusafely_core/dist/processor
+          path: docusafely_core/dist/processor
           retention-days: 7
 
   build-backend-linux:
@@ -85,32 +89,34 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
+      - name: Checkout docusafely_core
         uses: actions/checkout@v4
         with:
-          submodules: true
+          repository: hielf/docusafely_core
+          path: docusafely_core
       
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
+          cache-dependency-path: docusafely_core/requirements.txt
       
       - name: Install Python dependencies
-        working-directory: ../docusafely_core
+        working-directory: docusafely_core
         run: |
           pip install -r requirements.txt
           pip install pyinstaller
       
       - name: Build Linux backend with PyInstaller
-        working-directory: ../docusafely_core
+        working-directory: docusafely_core
         run: python build_executable.py
       
       - name: Upload Linux backend artifact
         uses: actions/upload-artifact@v4
         with:
           name: backend-linux
-          path: ../docusafely_core/dist/processor
+          path: docusafely_core/dist/processor
           retention-days: 7
 
   # ====================
