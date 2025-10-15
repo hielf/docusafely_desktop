@@ -30,27 +30,6 @@ jobs:
       - name: Run JS unit tests
         run: npm run test:js
 
-      - name: Setup Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-          cache-dependency-path: python_backend/requirements-dev.txt
-
-      - name: Set environment variable for macOS compatibility
-        if: matrix.os == 'macos-13'
-        run: echo "SETUPTOOLS_USE_DISTUTILS=stdlib" >> $GITHUB_ENV
-
-      - name: Install Python dev dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r python_backend/requirements-dev.txt
-          python -m pip install reportlab pymupdf
-
-      - name: Run Python unit tests
-        run: python -m pytest -q
-
-      - name: Generate test documents and run enhanced tests
-        run: |
-          python generate_test_documents.py
-          python example_test_with_documents.py
+      # Backend tests are now in separate docusafely_core repository
+      # The build-all-platforms.yml workflow handles building backends
+      # This CI only tests the frontend (Electron app) itself
