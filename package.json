@@ -61,12 +61,11 @@
     ],
     "win": {
       "target": [
-        {
-          "target": "dir",
-          "arch": [
-            "x64"
-          ]
-        }
+        "nsis",
+        "zip"
+      ],
+      "arch": [
+        "x64"
       ],
       "requestedExecutionLevel": "asInvoker",
       "electronLanguages": [
