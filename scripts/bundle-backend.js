@@ -101,6 +101,24 @@ try {
   const stats = fs.statSync(destPath);
   const sizeMB = (stats.size / (1024 * 1024)).toFixed(2);
   console.log(`[INFO] Size: ${sizeMB} MB`);
+
+  // Copy dry-run CLI script
+  const dryRunSourcePath = path.join(BACKEND_SOURCE, '..', 'src', 'docusafely_core', 'dry_run_cli.py');
+  const dryRunDestPath = path.join(BACKEND_DEST, 'dry_run_cli.py');
+
+  if (fs.existsSync(dryRunSourcePath)) {
+    fs.copyFileSync(dryRunSourcePath, dryRunDestPath);
+    console.log('[SUCCESS] Copied dry_run_cli.py to:', dryRunDestPath);
+
+    // Make executable on Unix-like systems
+    if (!isWindows) {
+      fs.chmodSync(dryRunDestPath, 0o755);
+      console.log('[INFO] Made dry_run_cli.py executable');
+    }
+  } else {
+    console.log('[WARNING] dry_run_cli.py not found at:', dryRunSourcePath);
+  }
+
   console.log('[Bundle Backend] Complete!');
 } catch (error) {
   console.error('[ERROR] Failed to copy backend:', error.message);
