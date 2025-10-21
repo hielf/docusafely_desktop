@@ -137,6 +137,7 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Extract version from tag
+        shell: bash
         run: |
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
@@ -149,6 +150,7 @@ jobs:
           echo "Extracted version: $VERSION"
       
       - name: Update package.json version
+        shell: bash
         run: |
           CURRENT_VERSION=$(grep '"version"' package.json | cut -d'"' -f4)
           if [ "$CURRENT_VERSION" != "$VERSION" ]; then
@@ -197,6 +199,7 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Extract version from tag
+        shell: bash
         run: |
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
@@ -209,6 +212,7 @@ jobs:
           echo "Extracted version: $VERSION"
       
       - name: Update package.json version
+        shell: bash
         run: |
           CURRENT_VERSION=$(grep '"version"' package.json | cut -d'"' -f4)
           if [ "$CURRENT_VERSION" != "$VERSION" ]; then
@@ -260,6 +264,7 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Extract version from tag
+        shell: bash
         run: |
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
@@ -272,6 +277,7 @@ jobs:
           echo "Extracted version: $VERSION"
       
       - name: Update package.json version
+        shell: bash
         run: |
           CURRENT_VERSION=$(grep '"version"' package.json | cut -d'"' -f4)
           if [ "$CURRENT_VERSION" != "$VERSION" ]; then
