@@ -150,8 +150,13 @@ jobs:
       
       - name: Update package.json version
         run: |
-          npm version $VERSION --no-git-tag-version
-          echo "Updated package.json to version $VERSION"
+          CURRENT_VERSION=$(grep '"version"' package.json | cut -d'"' -f4)
+          if [ "$CURRENT_VERSION" != "$VERSION" ]; then
+            npm version $VERSION --no-git-tag-version
+            echo "Updated package.json from $CURRENT_VERSION to $VERSION"
+          else
+            echo "Package.json version $VERSION already matches tag version"
+          fi
       
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -205,8 +210,13 @@ jobs:
       
       - name: Update package.json version
         run: |
-          npm version $VERSION --no-git-tag-version
-          echo "Updated package.json to version $VERSION"
+          CURRENT_VERSION=$(grep '"version"' package.json | cut -d'"' -f4)
+          if [ "$CURRENT_VERSION" != "$VERSION" ]; then
+            npm version $VERSION --no-git-tag-version
+            echo "Updated package.json from $CURRENT_VERSION to $VERSION"
+          else
+            echo "Package.json version $VERSION already matches tag version"
+          fi
       
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -263,8 +273,13 @@ jobs:
       
       - name: Update package.json version
         run: |
-          npm version $VERSION --no-git-tag-version
-          echo "Updated package.json to version $VERSION"
+          CURRENT_VERSION=$(grep '"version"' package.json | cut -d'"' -f4)
+          if [ "$CURRENT_VERSION" != "$VERSION" ]; then
+            npm version $VERSION --no-git-tag-version
+            echo "Updated package.json from $CURRENT_VERSION to $VERSION"
+          else
+            echo "Package.json version $VERSION already matches tag version"
+          fi
       
       - name: Set up Node.js
         uses: actions/setup-node@v4

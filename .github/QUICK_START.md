@@ -33,12 +33,8 @@ Deploy to GitHub Pages
 
 ### 2️⃣ Create a Release
 ```bash
-# Build your app
-npm run build:all
 
-# Create and push a tag
-git tag v1.0.0
-git push origin v1.0.0
+./scripts/pre-release.sh 1.0.3
 
 # Then on GitHub:
 # - Create new release
