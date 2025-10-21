@@ -136,6 +136,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      - name: Extract version from tag
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          else
+            VERSION=$(grep '"version"' package.json | cut -d'"' -f4)
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Extracted version: $VERSION"
+      
+      - name: Update package.json version
+        run: |
+          npm version $VERSION --no-git-tag-version
+          echo "Updated package.json to version $VERSION"
+      
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -173,6 +190,23 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      
+      - name: Extract version from tag
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          else
+            VERSION=$(grep '"version"' package.json | cut -d'"' -f4)
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Extracted version: $VERSION"
+      
+      - name: Update package.json version
+        run: |
+          npm version $VERSION --no-git-tag-version
+          echo "Updated package.json to version $VERSION"
       
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -214,6 +248,23 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      
+      - name: Extract version from tag
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          else
+            VERSION=$(grep '"version"' package.json | cut -d'"' -f4)
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Extracted version: $VERSION"
+      
+      - name: Update package.json version
+        run: |
+          npm version $VERSION --no-git-tag-version
+          echo "Updated package.json to version $VERSION"
       
       - name: Set up Node.js
         uses: actions/setup-node@v4
