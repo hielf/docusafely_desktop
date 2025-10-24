@@ -8,6 +8,8 @@ const PDFTextExtractor = require('../utils/pdf-text-extractor');
 describe('PDF Content Analysis Tests', () => {
   const TEST_FILES_DIR = path.join(__dirname, '../../test-files');
   const OUTPUT_DIR = path.join(__dirname, '../../test-output');
+  const PDF_PATH = path.join(__dirname, '../../../docusafely_core/test_documents/quote.pdf');
+  let pdfAvailable = false;
 
   beforeAll(() => {
     // Ensure test directories exist
@@ -17,20 +19,24 @@ describe('PDF Content Analysis Tests', () => {
     if (!fs.existsSync(OUTPUT_DIR)) {
       fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     }
+
+    // Check if PDF is available
+    pdfAvailable = fs.existsSync(PDF_PATH);
+    if (!pdfAvailable) {
+      console.warn(`⚠️ Test PDF not found at: ${PDF_PATH} - PDF content analysis tests will be skipped (CI environment)`);
+    }
   });
 
   describe('PDF Text Extraction', () => {
     test('should extract readable text from PDF', async () => {
-      const pdfPath = path.join(__dirname, '../../../docusafely_core/test_documents/quote.pdf');
-
-      if (!fs.existsSync(pdfPath)) {
-        console.warn('Test PDF not found, skipping text extraction test');
+      if (!pdfAvailable) {
+        console.log('⏭️  Skipping test - PDF file not available (CI environment)');
         return;
       }
 
       try {
         const extractor = new PDFTextExtractor();
-        const text = await extractor.extractText(pdfPath);
+        const text = await extractor.extractText(PDF_PATH);
         const analysis = extractor.analyzeText(text);
 
         expect(text).toBeDefined();
@@ -54,15 +60,14 @@ describe('PDF Content Analysis Tests', () => {
     });
 
     test('should identify maskable content patterns', async () => {
-      const pdfPath = path.join(__dirname, '../../../docusafely_core/test_documents/quote.pdf');
-
-      if (!fs.existsSync(pdfPath)) {
-        console.warn('Test PDF not found, skipping pattern analysis test');
+      if (!pdfAvailable) {
+        console.log('⏭️  Skipping test - PDF file not available (CI environment)');
         return;
       }
 
       try {
-        const text = await extractTextFromPdf(pdfPath);
+        const extractor = new PDFTextExtractor();
+        const text = await extractor.extractText(PDF_PATH);
 
         // Look for patterns that should be masked
         const patterns = {
@@ -93,16 +98,15 @@ describe('PDF Content Analysis Tests', () => {
 
   describe('PDF Processing Verification', () => {
     test('should verify PDF processing changes content', async () => {
-      const inputPath = path.join(__dirname, '../../../docusafely_core/test_documents/quote.pdf');
-      const outputPath = path.join(OUTPUT_DIR, 'quote-verification.pdf');
-
-      if (!fs.existsSync(inputPath)) {
-        console.warn('Test PDF not found, skipping processing verification test');
+      if (!pdfAvailable) {
+        console.log('⏭️  Skipping test - PDF file not available (CI environment)');
         return;
       }
 
+      const outputPath = path.join(OUTPUT_DIR, 'quote-verification.pdf');
+
       // Run the processor
-      const result = await runProcessor(inputPath, outputPath);
+      const result = await runProcessor(PDF_PATH, outputPath);
 
       if (result.status !== 'success') {
         console.warn('Processor failed:', result.message);
@@ -113,8 +117,9 @@ describe('PDF Content Analysis Tests', () => {
 
       try {
         // Extract text from both files
-        const originalText = await extractTextFromPdf(inputPath);
-        const processedText = await extractTextFromPdf(outputPath);
+        const extractor = new PDFTextExtractor();
+        const originalText = await extractor.extractText(PDF_PATH);
+        const processedText = await extractor.extractText(outputPath);
 
         console.log(`Original text length: ${originalText.length}`);
         console.log(`Processed text length: ${processedText.length}`);
@@ -138,19 +143,18 @@ describe('PDF Content Analysis Tests', () => {
     });
 
     test('should compare file characteristics before and after processing', async () => {
-      const inputPath = path.join(__dirname, '../../../docusafely_core/test_documents/quote.pdf');
-      const outputPath = path.join(OUTPUT_DIR, 'quote-comparison.pdf');
-
-      if (!fs.existsSync(inputPath)) {
-        console.warn('Test PDF not found, skipping file comparison test');
+      if (!pdfAvailable) {
+        console.log('⏭️  Skipping test - PDF file not available (CI environment)');
         return;
       }
 
+      const outputPath = path.join(OUTPUT_DIR, 'quote-comparison.pdf');
+
       // Get original file stats
-      const originalStats = fs.statSync(inputPath);
+      const originalStats = fs.statSync(PDF_PATH);
 
       // Process the file
-      const result = await runProcessor(inputPath, outputPath);
+      const result = await runProcessor(PDF_PATH, outputPath);
 
       if (result.status !== 'success') {
         console.warn('Processor failed:', result.message);
