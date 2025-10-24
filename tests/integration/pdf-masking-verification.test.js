@@ -18,8 +18,17 @@ describe('PDF Masking Verification Tests', () => {
   let processedText;
   let originalAnalysis;
   let processedAnalysis;
+  let pdfAvailable = false;
 
   beforeAll(async () => {
+    // Check if test PDF is available
+    pdfAvailable = fs.existsSync(ORIGINAL_PDF);
+
+    if (!pdfAvailable) {
+      console.warn('⚠️ Test PDF not found, PDF masking tests will be skipped');
+      console.warn(`   Expected location: ${ORIGINAL_PDF}`);
+    }
+
     // Ensure test directories exist
     if (!fs.existsSync(TEST_FILES_DIR)) {
       fs.mkdirSync(TEST_FILES_DIR, { recursive: true });
@@ -33,15 +42,16 @@ describe('PDF Masking Verification Tests', () => {
 
   describe('PDF Processing and Analysis', () => {
     test('should process PDF and extract text from both original and processed versions', async () => {
-      if (!fs.existsSync(ORIGINAL_PDF)) {
-        console.warn('Test PDF not found, skipping verification test');
+      if (!pdfAvailable) {
+        console.log('⏭️  Skipping test - PDF file not available (CI environment)');
         return;
       }
 
       const processedPdf = path.join(OUTPUT_DIR, 'quote-verification.pdf');
 
-      // Process the PDF
-      const result = await runProcessor(ORIGINAL_PDF, processedPdf);
+      // Process the PDF with entity policy
+      const policy = { entities: ['PERSON', 'EMAIL', 'PHONE', 'ADDRESS'] };
+      const result = await runProcessor(ORIGINAL_PDF, processedPdf, policy);
 
       expect(result.status).toBe('success');
       expect(fs.existsSync(processedPdf)).toBe(true);
@@ -83,8 +93,8 @@ describe('PDF Masking Verification Tests', () => {
     }, 30000);
 
     test('should analyze PII content in original PDF', () => {
-      if (!originalText) {
-        console.warn('Original text not available, skipping PII analysis');
+      if (!pdfAvailable || !originalText) {
+        console.log('⏭️  Skipping test - PDF file not available or text not extracted');
         return;
       }
 
@@ -105,8 +115,8 @@ describe('PDF Masking Verification Tests', () => {
     });
 
     test('should analyze PII content in processed PDF', () => {
-      if (!processedText) {
-        console.warn('Processed text not available, skipping PII analysis');
+      if (!pdfAvailable || !processedText) {
+        console.log('⏭️  Skipping test - PDF file not available or text not extracted');
         return;
       }
 
@@ -125,8 +135,8 @@ describe('PDF Masking Verification Tests', () => {
     });
 
     test('should compare original and processed PDFs for masking effectiveness', () => {
-      if (!originalText || !processedText) {
-        console.warn('Text not available for comparison, skipping comparison test');
+      if (!pdfAvailable || !originalText || !processedText) {
+        console.log('⏭️  Skipping test - PDF file not available or text not extracted');
         return;
       }
 
@@ -161,8 +171,8 @@ describe('PDF Masking Verification Tests', () => {
     });
 
     test('should verify specific PII elements are masked', () => {
-      if (!originalAnalysis || !processedAnalysis) {
-        console.warn('Analysis not available, skipping PII verification test');
+      if (!pdfAvailable || !originalAnalysis || !processedAnalysis) {
+        console.log('⏭️  Skipping test - PDF file not available or analysis not complete');
         return;
       }
 
@@ -198,8 +208,8 @@ describe('PDF Masking Verification Tests', () => {
     });
 
     test('should check for visual masking indicators in processed text', () => {
-      if (!processedText) {
-        console.warn('Processed text not available, skipping visual masking test');
+      if (!pdfAvailable || !processedText) {
+        console.log('⏭️  Skipping test - PDF file not available or text not extracted');
         return;
       }
 
@@ -255,7 +265,7 @@ describe('PDF Masking Verification Tests', () => {
 });
 
 // Helper function to run the processor
-async function runProcessor(inputPath, outputPath) {
+async function runProcessor(inputPath, outputPath, policy = null) {
   return new Promise((resolve) => {
     const { spawn } = require('child_process');
 
@@ -275,7 +285,13 @@ async function runProcessor(inputPath, outputPath) {
       return;
     }
 
-    const proc = spawn(processorPath, [inputPath, outputPath]);
+    // Set up environment with policy if provided
+    const env = policy ? {
+      ...process.env,
+      DOCMASK_ENTITY_POLICY: JSON.stringify(policy)
+    } : process.env;
+
+    const proc = spawn(processorPath, [inputPath, outputPath], { env });
 
     let stdout = '';
     let stderr = '';

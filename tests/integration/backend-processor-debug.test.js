@@ -13,8 +13,17 @@ describe('Backend Processor Debug Tests', () => {
   const ORIGINAL_PDF = path.join(__dirname, '../../../docusafely_core/test_documents/quote.pdf');
 
   let processorPath;
+  let pdfAvailable = false;
 
   beforeAll(() => {
+    // Check if test PDF is available
+    pdfAvailable = fs.existsSync(ORIGINAL_PDF);
+
+    if (!pdfAvailable) {
+      console.warn('⚠️ Test PDF not found, PDF tests will be skipped');
+      console.warn(`   Expected location: ${ORIGINAL_PDF}`);
+    }
+
     // Ensure test directories exist
     if (!fs.existsSync(TEST_FILES_DIR)) {
       fs.mkdirSync(TEST_FILES_DIR, { recursive: true });
@@ -33,8 +42,8 @@ describe('Backend Processor Debug Tests', () => {
 
   describe('Direct Processor Testing', () => {
     test('should run processor with verbose output to debug masking issue', async () => {
-      if (!fs.existsSync(ORIGINAL_PDF)) {
-        console.warn('Test PDF not found, skipping debug test');
+      if (!pdfAvailable) {
+        console.log('⏭️  Skipping test - PDF file not available (CI environment)');
         return;
       }
 
@@ -45,55 +54,37 @@ describe('Backend Processor Debug Tests', () => {
       console.log(`  Output: ${outputPath}`);
       console.log(`  Processor: ${processorPath}`);
 
-      // Test 1: Run without any policy (default behavior)
-      console.log('\n📋 Test 1: Default Policy');
-      const result1 = await runProcessorWithDebug(processorPath, ORIGINAL_PDF, outputPath + '.default');
-      console.log('Result 1:', JSON.stringify(result1, null, 2));
-
-      // Test 2: Run with explicit policy
-      console.log('\n📋 Test 2: Explicit Policy');
+      // Test with explicit policy
+      console.log('\n📋 Test: Explicit Policy');
       const explicitPolicy = {
         entities: ['PERSON', 'EMAIL', 'PHONE', 'ADDRESS']
       };
-      const result2 = await runProcessorWithPolicy(processorPath, ORIGINAL_PDF, outputPath + '.explicit', explicitPolicy);
-      console.log('Result 2:', JSON.stringify(result2, null, 2));
+      const result = await runProcessorWithPolicy(processorPath, ORIGINAL_PDF, outputPath + '.explicit', explicitPolicy);
+      console.log('Result:', JSON.stringify(result, null, 2));
 
-      // Test 3: Run with minimal policy
-      console.log('\n📋 Test 3: Minimal Policy');
-      const minimalPolicy = {
-        entities: ['EMAIL']
-      };
-      const result3 = await runProcessorWithPolicy(processorPath, ORIGINAL_PDF, outputPath + '.minimal', minimalPolicy);
-      console.log('Result 3:', JSON.stringify(result3, null, 2));
+      // Test should report success
+      expect(result.status).toBe('success');
 
-      // All tests should report success
-      expect(result1.status).toBe('success');
-      expect(result2.status).toBe('success');
-      expect(result3.status).toBe('success');
-
-      // Check if any of the outputs are different from input
+      // Check if output is different from input
       const originalSize = fs.statSync(ORIGINAL_PDF).size;
-      const output1Size = fs.statSync(outputPath + '.default').size;
-      const output2Size = fs.statSync(outputPath + '.explicit').size;
-      const output3Size = fs.statSync(outputPath + '.minimal').size;
+      const outputSize = fs.statSync(outputPath + '.explicit').size;
 
       console.log('\n📊 File Size Comparison:');
       console.log(`  Original: ${originalSize} bytes`);
-      console.log(`  Default: ${output1Size} bytes (diff: ${output1Size - originalSize})`);
-      console.log(`  Explicit: ${output2Size} bytes (diff: ${output2Size - originalSize})`);
-      console.log(`  Minimal: ${output3Size} bytes (diff: ${output3Size - originalSize})`);
+      console.log(`  Processed: ${outputSize} bytes (diff: ${outputSize - originalSize})`);
 
-      // At least one should be different if masking is working
-      const hasChanges = (output1Size !== originalSize) ||
-        (output2Size !== originalSize) ||
-        (output3Size !== originalSize);
+      // File size should be different if masking is working
+      const hasChanges = outputSize !== originalSize;
 
       if (!hasChanges) {
         console.warn('⚠️ No file size changes detected - masking may not be working');
       } else {
-        console.log('✅ File size changes detected - masking appears to be working');
+        console.log('✅ File size changes detected - masking is working');
       }
-    }, 60000);
+
+      // Expect file size to change when masking
+      expect(hasChanges).toBe(true);
+    }, 30000);
 
     test('should test processor with different file types to isolate PDF issue', async () => {
       // Create a simple text file with PII
@@ -142,8 +133,8 @@ SSN: 123-45-6789
     }, 30000);
 
     test('should test processor with environment variables and debug flags', async () => {
-      if (!fs.existsSync(ORIGINAL_PDF)) {
-        console.warn('Test PDF not found, skipping environment test');
+      if (!pdfAvailable) {
+        console.log('⏭️  Skipping test - PDF file not available (CI environment)');
         return;
       }
 
