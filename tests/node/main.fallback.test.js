@@ -6,10 +6,13 @@ jest.mock('electron', () => {
   const ipcMain = { handle: jest.fn() };
   const app = {
     isPackaged: false,
-    whenReady: () => ({ then: () => {} }),
+    whenReady: () => ({ then: () => { } }),
     on: jest.fn(),
   };
-  const BrowserWindow = function () {};
+  const BrowserWindow = function () {
+    this.loadFile = jest.fn();
+    this.webContents = { openDevTools: jest.fn() };
+  };
   BrowserWindow.getAllWindows = () => [];
   return {
     app,

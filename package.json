@@ -16,7 +16,11 @@
     "build:all": "electron-builder --win --mac --linux",
     "dist": "npm run build",
     "test:js": "jest --runInBand",
-    "test": "npm run test:js"
+    "test": "npm run test:js",
+    "test:integration": "jest tests/integration/ --runInBand",
+    "test:pdf": "jest tests/integration/pdf-processing.test.js tests/integration/pdf-content-analysis.test.js --runInBand",
+    "test:coverage": "jest --coverage --runInBand",
+    "test:all": "npm run test && npm run test:integration"
   },
   "keywords": [
     "electron",
