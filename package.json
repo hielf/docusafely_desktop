@@ -1,6 +1,6 @@
 {
   "name": "docusafely-desktop",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "main": "src/main.js",
   "description": "DocuSafely Desktop - Document masking and PII detection application",
   "author": "hielf",

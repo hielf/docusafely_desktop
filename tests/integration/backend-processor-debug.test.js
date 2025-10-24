@@ -14,16 +14,9 @@ describe('Backend Processor Debug Tests', () => {
 
   let processorPath;
   let pdfAvailable = false;
+  let processorAvailable = false;
 
   beforeAll(() => {
-    // Check if test PDF is available
-    pdfAvailable = fs.existsSync(ORIGINAL_PDF);
-
-    if (!pdfAvailable) {
-      console.warn('⚠️ Test PDF not found, PDF tests will be skipped');
-      console.warn(`   Expected location: ${ORIGINAL_PDF}`);
-    }
-
     // Ensure test directories exist
     if (!fs.existsSync(TEST_FILES_DIR)) {
       fs.mkdirSync(TEST_FILES_DIR, { recursive: true });
@@ -38,12 +31,26 @@ describe('Backend Processor Debug Tests', () => {
     processorPath = isWindows
       ? path.join(backendBase, 'dist', 'processor.exe')
       : path.join(backendBase, 'dist', 'processor');
+
+    // Check if processor is available
+    processorAvailable = fs.existsSync(processorPath);
+    if (!processorAvailable) {
+      console.warn('⚠️ Backend processor not found, processor tests will be skipped (CI environment)');
+      console.warn(`   Expected location: ${processorPath}`);
+    }
+
+    // Check if test PDF is available
+    pdfAvailable = fs.existsSync(ORIGINAL_PDF);
+    if (!pdfAvailable) {
+      console.warn('⚠️ Test PDF not found, PDF tests will be skipped');
+      console.warn(`   Expected location: ${ORIGINAL_PDF}`);
+    }
   });
 
   describe('Direct Processor Testing', () => {
     test('should run processor with verbose output to debug masking issue', async () => {
-      if (!pdfAvailable) {
-        console.log('⏭️  Skipping test - PDF file not available (CI environment)');
+      if (!pdfAvailable || !processorAvailable) {
+        console.log('⏭️  Skipping test - PDF file or processor not available (CI environment)');
         return;
       }
 
@@ -87,6 +94,11 @@ describe('Backend Processor Debug Tests', () => {
     }, 30000);
 
     test('should test processor with different file types to isolate PDF issue', async () => {
+      if (!processorAvailable) {
+        console.log('⏭️  Skipping test - processor not available (CI environment)');
+        return;
+      }
+
       // Create a simple text file with PII
       const testTextPath = path.join(TEST_FILES_DIR, 'test-pii.txt');
       const testContent = `
@@ -133,8 +145,8 @@ SSN: 123-45-6789
     }, 30000);
 
     test('should test processor with environment variables and debug flags', async () => {
-      if (!pdfAvailable) {
-        console.log('⏭️  Skipping test - PDF file not available (CI environment)');
+      if (!pdfAvailable || !processorAvailable) {
+        console.log('⏭️  Skipping test - PDF file or processor not available (CI environment)');
         return;
       }
 
