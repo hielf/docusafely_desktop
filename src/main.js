@@ -84,7 +84,17 @@ ipcMain.handle('process-document', async (event, { inputPath, outputPath, policy
     const trySpawnCompiled = () => {
       if (!fs.existsSync(compiledPath)) return null;
       try {
-        return spawn(compiledPath, [inputPath, outputPath]);
+        // Pass policy via environment variable
+        const env = Object.assign({}, process.env, {
+          DOCMASK_ENTITY_POLICY: (() => {
+            try {
+              return JSON.stringify(policy || {});
+            } catch (_e) {
+              return '{}';
+            }
+          })()
+        });
+        return spawn(compiledPath, [inputPath, outputPath], { env });
       } catch (_e) {
         return null;
       }
@@ -115,19 +125,36 @@ ipcMain.handle('process-document', async (event, { inputPath, outputPath, policy
         if (code === 0) {
           try {
             const result = JSON.parse(stdout);
+            // Log the debug log location if available
+            if (result.log_file) {
+              console.log(`[DocuSafely] Debug log: ${result.log_file}`);
+            }
             resolve(result);
           } catch (error) {
             resolve({
               status: 'error',
               message: 'Failed to parse processor output',
-              error: stdout
+              error: stdout,
+              stderr: stderr
             });
           }
         } else {
+          // Try to parse stderr to extract log file location
+          let logFile = null;
+          try {
+            const logMatch = stderr.match(/Debug log saved to: (.+)$/m);
+            if (logMatch) {
+              logFile = logMatch[1].trim();
+            }
+          } catch (e) {
+            // Ignore parsing errors
+          }
+
           resolve({
             status: 'error',
             message: 'Processor failed',
-            error: stderr || stdout
+            error: stderr || stdout,
+            log_file: logFile
           });
         }
       });

@@ -297,12 +297,20 @@
                 if (result.status === 'success') {
                     tempOutputPath = result.output;
                     isDownloadReady = true;
-                    updateStatus(`[SUCCESS] ${result.message}\nClick "Save Now" to save the processed file.`, 'success');
+                    let successMsg = `[SUCCESS] ${result.message}\nClick "Save Now" to save the processed file.`;
+                    if (result.log_file) {
+                        successMsg += `\n\n📋 Debug log: ${result.log_file}`;
+                    }
+                    updateStatus(successMsg, 'success');
                     processBtn.textContent = 'Save Now';
                     processBtn.classList.add('download-ready');
                     processBtn.disabled = false;
                 } else {
-                    updateStatus(`[ERROR] Error: ${result.message}\n${result.error || ''}`, 'error');
+                    let errorMsg = `[ERROR] Error: ${result.message}\n${result.error || ''}`;
+                    if (result.log_file) {
+                        errorMsg += `\n\n📋 Debug log: ${result.log_file}`;
+                    }
+                    updateStatus(errorMsg, 'error');
                     processBtn.disabled = false;
                     processBtn.textContent = 'Process File';
                 }
