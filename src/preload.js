@@ -7,5 +7,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectOutputFile: () => ipcRenderer.invoke('select-output-file'),
   processDocument: (data) => ipcRenderer.invoke('process-document', data),
   generateDryRunReport: (data) => ipcRenderer.invoke('generate-dry-run-report', data),
-  copyFile: (src, dest, overwrite = false) => ipcRenderer.invoke('copy-file', { src, dest, overwrite })
+  copyFile: (src, dest, overwrite = false) => ipcRenderer.invoke('copy-file', { src, dest, overwrite }),
+  getEntityMappingReport: (data) => ipcRenderer.invoke('get-entity-mapping-report', data)
 });

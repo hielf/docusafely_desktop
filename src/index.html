@@ -119,6 +119,88 @@
             border: 1px solid #bee5eb;
             color: #0c5460;
         }
+
+        .report-section {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #fff;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .report-section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #007acc;
+            padding-bottom: 10px;
+        }
+
+        .report-section h4 {
+            color: #555;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .entity-type-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-left: 4px solid #007acc;
+            border-radius: 4px;
+        }
+
+        .entity-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .entity-item .original {
+            font-weight: 600;
+            color: #d32f2f;
+            margin-bottom: 5px;
+        }
+
+        .entity-item .masked {
+            color: #1976d2;
+            margin-bottom: 5px;
+        }
+
+        .entity-item .meta {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .statistics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1976d2;
+        }
+
+        .stat-card .label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
     </style>
 </head>
 
@@ -184,20 +266,17 @@
 
         <div class="form-group">
             <button class="process-btn" id="processBtn">Process File</button>
-            <button class="process-btn" id="previewBtn" style="margin-left: 10px; background: #28a745;">Preview
-                Masking</button>
         </div>
 
-        <div id="preview-section"
-            style="display: none; margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 6px; background: #f9f9f9;">
-            <h3>Masking Preview</h3>
-            <div id="preview-content">
-                <p>Click "Preview Masking" to see what entities will be detected and masked.</p>
+        <div id="report-section" class="report-section" style="display: none;">
+            <h3>Entity Masking Report</h3>
+            <div id="report-content">
+                <p>Loading entity mapping report...</p>
             </div>
         </div>
 
         <div class="status info" id="status">
-            Ready to process files. Select an input file, then click "Process File" or "Preview Masking".
+            Ready to process files. Select an input file, then click "Process File".
         </div>
     </div>
 
@@ -205,10 +284,9 @@
         const inputPathEl = document.getElementById('inputPath');
         const selectInputBtn = document.getElementById('selectInputBtn');
         const processBtn = document.getElementById('processBtn');
-        const previewBtn = document.getElementById('previewBtn');
         const statusEl = document.getElementById('status');
-        const previewSection = document.getElementById('preview-section');
-        const previewContent = document.getElementById('preview-content');
+        const reportSection = document.getElementById('report-section');
+        const reportContent = document.getElementById('report-content');
         const generateReportCheckbox = document.getElementById('generateReport');
         const entityCheckboxes = () => Array.from(document.querySelectorAll('.entity-checkbox'));
         const maskAllCheckbox = document.getElementById('mask-all-checkbox');
@@ -299,12 +377,17 @@
                     isDownloadReady = true;
                     let successMsg = `[SUCCESS] ${result.message}\nClick "Save Now" to save the processed file.`;
                     if (result.log_file) {
-                        successMsg += `\n\n📋 Debug log: ${result.log_file}`;
+                        successMsg += `\n\n[INFO] Debug log: ${result.log_file}`;
                     }
                     updateStatus(successMsg, 'success');
                     processBtn.textContent = 'Save Now';
                     processBtn.classList.add('download-ready');
                     processBtn.disabled = false;
+
+                    // Automatically fetch and display entity mapping report
+                    if (result.session_id) {
+                        displayEntityMappingReport(result.session_id);
+                    }
                 } else {
                     let errorMsg = `[ERROR] Error: ${result.message}\n${result.error || ''}`;
                     if (result.log_file) {
@@ -321,74 +404,78 @@
             }
         });
 
-        previewBtn.addEventListener('click', async () => {
-            const inputPath = inputPathEl.value.trim();
-
-            if (!inputPath) {
-                updateStatus('Please select an input file.', 'error');
-                return;
-            }
-
-            // Prepare button for processing state
-            previewBtn.disabled = true;
-            previewBtn.textContent = 'Analyzing...';
-            updateStatus('Analyzing file for entities... Please wait.', 'info');
-
+        // Function to display entity mapping report automatically after processing
+        async function displayEntityMappingReport(sessionId) {
             try {
-                const policy = maskAllCheckbox.checked
-                    ? { mask_all: true }
-                    : {
-                        entities: entityCheckboxes()
-                            .filter((el) => el.checked)
-                            .map((el) => el.getAttribute('data-entity'))
-                    };
+                reportSection.style.display = 'block';
+                reportContent.innerHTML = '<p>Loading entity mapping report...</p>';
 
-                // Generate dry-run report
-                const result = await window.electronAPI.generateDryRunReport({ inputPath, policy });
+                const reportResult = await window.electronAPI.getEntityMappingReport({ sessionId });
 
-                if (result.status === 'success') {
-                    // Show preview section
-                    previewSection.style.display = 'block';
+                if (reportResult.status === 'success') {
+                    const report = reportResult;
+                    let reportHtml = '';
 
-                    // Display preview content
-                    const entitiesFound = result.entities_found || 0;
-                    const entitiesByType = result.entities_by_type || {};
+                    // Statistics section
+                    reportHtml += '<div class="statistics">';
+                    reportHtml += `<div class="stat-card"><div class="value">${report.total_entities}</div><div class="label">Total Entities</div></div>`;
+                    reportHtml += `<div class="stat-card"><div class="value">${Object.keys(report.entities_by_type).length}</div><div class="label">Entity Types</div></div>`;
+                    if (report.document_path) {
+                        const docName = report.document_path.split(/[/\\]/).pop();
+                        reportHtml += `<div class="stat-card"><div class="value" style="font-size: 14px; word-break: break-word;">${docName}</div><div class="label">Document</div></div>`;
+                    }
+                    reportHtml += '</div>';
 
-                    let previewHtml = `<h4>Analysis Results</h4>`;
-                    previewHtml += `<p><strong>Total entities found:</strong> ${entitiesFound}</p>`;
+                    // Entities by type
+                    if (Object.keys(report.entities_by_type).length > 0) {
+                        reportHtml += '<h4>Entities by Type</h4>';
+                        for (const [entityType, entities] of Object.entries(report.entities_by_type)) {
+                            reportHtml += `<div class="entity-type-group">`;
+                            reportHtml += `<h4 style="margin-top: 0; margin-bottom: 10px; color: #007acc;">${entityType} (${entities.length})</h4>`;
 
-                    if (entitiesFound > 0) {
-                        previewHtml += `<h5>Entities by type:</h5><ul>`;
-                        for (const [entityType, count] of Object.entries(entitiesByType)) {
-                            previewHtml += `<li><strong>${entityType}:</strong> ${count}</li>`;
-                        }
-                        previewHtml += `</ul>`;
-
-                        if (result.report_files) {
-                            previewHtml += `<h5>Report files generated:</h5><ul>`;
-                            for (const [format, filePath] of Object.entries(result.report_files)) {
-                                previewHtml += `<li><strong>${format}:</strong> ${filePath}</li>`;
+                            for (const entity of entities) {
+                                reportHtml += `<div class="entity-item">`;
+                                reportHtml += `<div class="original">Original: ${escapeHtml(entity.original_text)}</div>`;
+                                reportHtml += `<div class="masked">Masked: ${escapeHtml(entity.masked_text)}</div>`;
+                                reportHtml += `<div class="meta">`;
+                                reportHtml += `Confidence: ${(entity.confidence * 100).toFixed(1)}%`;
+                                if (entity.policy_applied && Object.keys(entity.policy_applied).length > 0) {
+                                    reportHtml += ` | Action: ${entity.policy_applied.action || 'N/A'}`;
+                                }
+                                reportHtml += `</div>`;
+                                reportHtml += `</div>`;
                             }
-                            previewHtml += `</ul>`;
+                            reportHtml += `</div>`;
                         }
                     } else {
-                        previewHtml += `<p>No sensitive entities detected with the current policy.</p>`;
+                        reportHtml += '<p>No entities were masked in this session.</p>';
                     }
 
-                    previewContent.innerHTML = previewHtml;
-                    updateStatus(`[SUCCESS] Preview generated. Found ${entitiesFound} entities.`, 'success');
+                    // Session metadata
+                    reportHtml += '<h4>Session Information</h4>';
+                    reportHtml += '<div style="font-size: 12px; color: #666; margin-top: 10px;">';
+                    reportHtml += `<p><strong>Session ID:</strong> ${report.session_id}</p>`;
+                    if (report.created_at) {
+                        reportHtml += `<p><strong>Created:</strong> ${new Date(report.created_at).toLocaleString()}</p>`;
+                    }
+                    reportHtml += '</div>';
+
+                    reportContent.innerHTML = reportHtml;
                 } else {
-                    updateStatus(`[ERROR] Preview failed: ${result.message}`, 'error');
-                    previewSection.style.display = 'none';
+                    reportContent.innerHTML = `<p style="color: #d32f2f;">Error loading report: ${reportResult.message || 'Unknown error'}</p>`;
                 }
             } catch (error) {
-                updateStatus(`[ERROR] Preview error: ${error.message}`, 'error');
-                previewSection.style.display = 'none';
-            } finally {
-                previewBtn.disabled = false;
-                previewBtn.textContent = 'Preview Masking';
+                reportContent.innerHTML = `<p style="color: #d32f2f;">Error displaying report: ${error.message}</p>`;
             }
-        });
+        }
+
+        // Helper function to escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
     </script>
 </body>
 

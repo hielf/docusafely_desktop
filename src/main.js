@@ -303,3 +303,77 @@ ipcMain.handle('copy-file', async (_event, { src, dest, overwrite }) => {
     return { status: 'error', message: String(error) };
   }
 });
+
+// Get entity mapping data for a session
+ipcMain.handle('get-entity-mapping-report', async (_event, { sessionId }) => {
+  try {
+    if (!sessionId) {
+      return { status: 'error', message: 'sessionId is required' };
+    }
+
+    // Determine mapping storage directory
+    const storageDir = process.env.DOCUSAFELY_MAPPING_STORAGE_DIR ||
+      path.join(app.getPath('temp'), 'docusafely_mappings');
+
+    // Read session file
+    const sessionFile = path.join(storageDir, `session_${sessionId}.json`);
+
+    if (!fs.existsSync(sessionFile)) {
+      return { status: 'error', message: `Session ${sessionId} not found` };
+    }
+
+    // Read session data
+    const sessionData = JSON.parse(fs.readFileSync(sessionFile, 'utf-8'));
+
+    // Read all mapping files for this session
+    const mappingFiles = fs.readdirSync(storageDir)
+      .filter(f => f.startsWith(`mapping_${sessionId}_`) && f.endsWith('.json'))
+      .map(f => path.join(storageDir, f));
+
+    // Load all mappings
+    const mappings = [];
+    for (const mappingFile of mappingFiles) {
+      try {
+        const mappingData = JSON.parse(fs.readFileSync(mappingFile, 'utf-8'));
+        mappings.push(mappingData);
+      } catch (err) {
+        console.error(`Error reading mapping file ${mappingFile}:`, err);
+      }
+    }
+
+    // Group mappings by entity type
+    const entitiesByType = {};
+    for (const mapping of mappings) {
+      const entityType = mapping.entity_type || 'unknown';
+      if (!entitiesByType[entityType]) {
+        entitiesByType[entityType] = [];
+      }
+      entitiesByType[entityType].push({
+        original_text: mapping.original_text,
+        masked_text: mapping.masked_text,
+        confidence: mapping.confidence || 1.0,
+        position: mapping.position || {},
+        policy_applied: mapping.policy_applied || {}
+      });
+    }
+
+    // Build report
+    const report = {
+      status: 'success',
+      session_id: sessionId,
+      document_path: sessionData.document_path,
+      document_hash: sessionData.document_hash,
+      policy: sessionData.policy,
+      created_at: sessionData.created_at,
+      last_accessed: sessionData.last_accessed,
+      status_text: sessionData.status,
+      total_entities: sessionData.entity_count || mappings.length,
+      entities_by_type: entitiesByType,
+      mappings: mappings
+    };
+
+    return report;
+  } catch (error) {
+    return { status: 'error', message: String(error), error: error.message };
+  }
+});
