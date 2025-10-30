@@ -1,0 +1,35 @@
+{
+  "entityCatalog": [
+    "person_name",
+    "email",
+    "phone",
+    "address",
+    "postal_code",
+    "ssn",
+    "credit_card",
+    "bank_account",
+    "drivers_license",
+    "credentials",
+    "health",
+    "metadata"
+  ],
+  "securityLevels": {
+    "basic": [
+      "person_name",
+      "address",
+      "phone",
+      "email"
+    ],
+    "balanced": [
+      "person_name",
+      "address",
+      "phone",
+      "email",
+      "ssn",
+      "credit_card",
+      "bank_account",
+      "drivers_license"
+    ],
+    "strict": "__ALL__"
+  }
+}

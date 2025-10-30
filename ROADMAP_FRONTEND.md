@@ -114,13 +114,13 @@ Short- and mid-term plan to evolve user experience, interface design, and policy
 
 ### Milestones
 - M1: Core UI Foundation (priority)
-  - Implement Tailwind CSS-based modern UI framework.
-  - Create Security Level tab with Basic, Balanced, Strict groups.
-  - Implement Expert Option tab with per-entity controls.
-  - Add progress bar and real-time status updates.
-  - Remove all "mask_all" options from interface.
-  - Integrate entity mapping system with session tracking.
-  - Remove "Generate dry-run report" option.
+  - [x] Implement Tailwind CSS-based modern UI framework.
+  - [x] Create Security Level tab with Basic, Balanced, Strict groups.
+  - [x] Implement Expert Option tab with per-entity controls.
+  - [x] Add progress bar and real-time status updates.
+  - [x] Remove all "mask_all" options from interface.
+  - [x] Integrate entity mapping system with session tracking.
+  - [x] Remove "Generate dry-run report" option.
 - M2: Policy Management & Automatic Reports
   - Implement per-entity action selector and template editor.
   - Automatically display entity masking report after processing based on session mapping data.

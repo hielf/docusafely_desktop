@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Doc Masking - Text Processor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -205,78 +206,86 @@
 </head>
 
 <body>
-    <div class="container">
-        <h1>[DOC] Doc Masking - Text Processor</h1>
+    <div class="max-w-4xl mx-auto p-6 bg-gray-50 min-h-screen">
+        <h1 class="text-2xl font-semibold text-gray-800 text-center mb-6">DocuSafely - Text Processor</h1>
 
-        <div class="form-group">
-            <label for="inputPath">Input File Path:</label>
-            <div class="input-group">
-                <input type="text" id="inputPath" placeholder="Select or enter input file path...">
-                <button type="button" id="selectInputBtn">Browse</button>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label>Entity Policy:</label>
-            <div id="policy-advanced"
-                style="margin-top:10px; padding:10px; border:1px solid #eee; border-radius:6px; background:#fafafa;">
-                <div style="margin-bottom:12px;">
-                    <label style="font-weight:600; color:#d9534f;">
-                        <input type="checkbox" id="mask-all-checkbox"> 🔒 Mask All Text (Maximum Security)
-                    </label>
-                    <div style="margin-left:24px; font-size:12px; color:#666; margin-top:4px;">
-                        Enable this to mask ALL alphanumeric characters (most secure)
-                    </div>
-                </div>
-                <div style="border-top:1px solid #ddd; padding-top:10px;">
-                    <div style="margin-bottom:6px; color:#333; font-weight:500;">Or select specific entities to mask:
-                    </div>
-                    <div id="entity-checkboxes"
-                        style="display:grid; grid-template-columns: repeat(2, minmax(200px, 1fr)); gap:8px;">
-                        <label><input type="checkbox" class="entity-checkbox" data-entity="person_name" checked> Person
-                            Name</label>
-                        <label><input type="checkbox" class="entity-checkbox" data-entity="email" checked> Email</label>
-                        <label><input type="checkbox" class="entity-checkbox" data-entity="phone" checked> Phone</label>
-                        <label><input type="checkbox" class="entity-checkbox" data-entity="address" checked>
-                            Address</label>
-                        <label><input type="checkbox" class="entity-checkbox" data-entity="postal_code" checked> Postal
-                            Code</label>
-                        <label><input type="checkbox" class="entity-checkbox" data-entity="government_id" checked>
-                            Government ID</label>
-                        <label><input type="checkbox" class="entity-checkbox" data-entity="financial" checked>
-                            Financial</label>
-                        <label><input type="checkbox" class="entity-checkbox" data-entity="credentials" checked>
-                            Credentials/Secrets</label>
-                        <label><input type="checkbox" class="entity-checkbox" data-entity="health" checked>
-                            Health/PHI</label>
-                        <label><input type="checkbox" class="entity-checkbox" data-entity="metadata" checked>
-                            Metadata/IDs</label>
-                    </div>
-                    <div style="margin-top:8px; font-size:12px; color:#666;">Note: Entity detection works best for text
-                        files; PDFs use text layer masking.</div>
+        <div class="bg-white rounded-xl shadow p-6">
+            <div class="mb-5">
+                <label for="inputPath" class="block text-sm font-medium text-gray-700 mb-2">Input File Path</label>
+                <div class="flex gap-2">
+                    <input type="text" id="inputPath"
+                        class="flex-1 border-2 border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:border-blue-500"
+                        placeholder="Select or enter input file path...">
+                    <button type="button" id="selectInputBtn"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Browse</button>
                 </div>
             </div>
-        </div>
 
-        <div class="form-group">
-            <label>
-                <input type="checkbox" id="generateReport" checked> Generate dry-run report
-            </label>
-        </div>
-
-        <div class="form-group">
-            <button class="process-btn" id="processBtn">Process File</button>
-        </div>
-
-        <div id="report-section" class="report-section" style="display: none;">
-            <h3>Entity Masking Report</h3>
-            <div id="report-content">
-                <p>Loading entity mapping report...</p>
+            <div class="border-b border-gray-200 mb-4">
+                <nav class="-mb-px flex gap-4" aria-label="Tabs">
+                    <button id="tab-security"
+                        class="py-2 px-3 border-b-2 border-blue-600 text-blue-600 font-medium">Security Level</button>
+                    <button id="tab-expert"
+                        class="py-2 px-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700">Expert
+                        Options</button>
+                </nav>
             </div>
-        </div>
 
-        <div class="status info" id="status">
-            Ready to process files. Select an input file, then click "Process File".
+            <div id="panel-security" class="space-y-4">
+                <div>
+                    <p class="text-sm text-gray-600 mb-2">Choose a security level. Entities are included automatically.
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <label class="border rounded-md p-3 cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="securityLevel" value="basic" class="mr-2" checked>
+                            <span class="font-medium">Basic</span>
+                            <div class="text-xs text-gray-500 mt-1">Names, addresses, phone, email</div>
+                        </label>
+                        <label class="border rounded-md p-3 cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="securityLevel" value="balanced" class="mr-2">
+                            <span class="font-medium">Balanced</span>
+                            <div class="text-xs text-gray-500 mt-1">Basic + SSN, credit cards, bank, driver IDs</div>
+                        </label>
+                        <label class="border rounded-md p-3 cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="securityLevel" value="strict" class="mr-2">
+                            <span class="font-medium">Strict</span>
+                            <div class="text-xs text-gray-500 mt-1">All entities incl. credentials, health, legal</div>
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-sm font-medium text-gray-700 mb-2">Entities included</h3>
+                    <div id="level-entities" class="text-sm text-gray-700 bg-gray-50 rounded-md p-3"></div>
+                </div>
+            </div>
+
+            <div id="panel-expert" class="space-y-4 hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="expert-entities"></div>
+                <div class="text-xs text-gray-500">Adjust detection thresholds where applicable (0-1). Leave blank to
+                    use defaults.</div>
+            </div>
+
+            <div class="mt-4">
+                <button
+                    class="w-full py-3 font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    id="processBtn">Process File</button>
+            </div>
+
+            <div class="mt-4">
+                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                    <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%;"></div>
+                </div>
+                <div class="mt-2 text-xs text-gray-600" id="progressText">Idle</div>
+            </div>
+
+            <div id="report-section" class="mt-6 hidden">
+                <h3 class="text-lg font-medium text-gray-800 border-b pb-2">Entity Masking Report</h3>
+                <div id="report-content" class="mt-3"></div>
+            </div>
+
+            <div id="status"
+                class="mt-4 rounded-md border border-blue-200 bg-blue-50 text-blue-800 p-3 text-sm whitespace-pre-wrap">
+                Ready to process files. Select an input file, then click "Process File".</div>
         </div>
     </div>
 
@@ -287,26 +296,92 @@
         const statusEl = document.getElementById('status');
         const reportSection = document.getElementById('report-section');
         const reportContent = document.getElementById('report-content');
-        const generateReportCheckbox = document.getElementById('generateReport');
-        const entityCheckboxes = () => Array.from(document.querySelectorAll('.entity-checkbox'));
-        const maskAllCheckbox = document.getElementById('mask-all-checkbox');
-        const entityCheckboxesContainer = document.getElementById('entity-checkboxes');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const tabSecurity = document.getElementById('tab-security');
+        const tabExpert = document.getElementById('tab-expert');
+        const panelSecurity = document.getElementById('panel-security');
+        const panelExpert = document.getElementById('panel-expert');
+        const levelEntitiesEl = document.getElementById('level-entities');
+        const expertEntitiesEl = document.getElementById('expert-entities');
+
+        const ENTITY_CATALOG = [
+            { key: 'person_name', label: 'Person Name' },
+            { key: 'email', label: 'Email' },
+            { key: 'phone', label: 'Phone' },
+            { key: 'address', label: 'Address' },
+            { key: 'postal_code', label: 'Postal Code' },
+            { key: 'ssn', label: 'SSN' },
+            { key: 'credit_card', label: 'Credit Card' },
+            { key: 'bank_account', label: 'Bank Account' },
+            { key: 'drivers_license', label: "Driver's License" },
+            { key: 'credentials', label: 'Credentials/Secrets' },
+            { key: 'health', label: 'Health/PHI' },
+            { key: 'metadata', label: 'Metadata/IDs' }
+        ];
+
+        const SECURITY_LEVELS = {
+            basic: ['person_name', 'address', 'phone', 'email'],
+            balanced: ['person_name', 'address', 'phone', 'email', 'ssn', 'credit_card', 'bank_account', 'drivers_license'],
+            strict: ENTITY_CATALOG.map(e => e.key)
+        };
+
+        let currentTab = 'security';
+        let currentLevel = 'basic';
 
         function updateStatus(message, type = 'info') {
             statusEl.textContent = message;
             statusEl.className = `status ${type}`;
         }
 
-        // When "Mask All" is checked, disable individual entity checkboxes
-        maskAllCheckbox.addEventListener('change', () => {
-            if (maskAllCheckbox.checked) {
-                entityCheckboxesContainer.style.opacity = '0.5';
-                entityCheckboxes().forEach(cb => cb.disabled = true);
+        function renderLevelEntities() {
+            const entities = SECURITY_LEVELS[currentLevel].map(key => {
+                const info = ENTITY_CATALOG.find(e => e.key === key);
+                return info ? info.label : key;
+            });
+            levelEntitiesEl.textContent = entities.join(', ');
+        }
+
+        function renderExpertEntities() {
+            expertEntitiesEl.innerHTML = ENTITY_CATALOG.map(e => (
+                `<label class="flex items-center gap-2 border rounded-md px-3 py-2">
+                    <input type="checkbox" class="expert-entity" data-entity="${e.key}" checked>
+                    <span class="flex-1">${e.label}</span>
+                    <span class="text-xs text-gray-500">threshold</span>
+                    <input type="number" min="0" max="1" step="0.05" class="w-20 border rounded px-2 py-1 text-xs expert-threshold" data-entity="${e.key}" placeholder="default">
+                </label>`
+            )).join('');
+        }
+
+        function setActiveTab(tab) {
+            currentTab = tab;
+            const activeClasses = 'py-2 px-3 border-b-2 border-blue-600 text-blue-600 font-medium';
+            const inactiveClasses = 'py-2 px-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700';
+            if (tab === 'security') {
+                tabSecurity.className = activeClasses;
+                tabExpert.className = inactiveClasses;
+                panelSecurity.classList.remove('hidden');
+                panelExpert.classList.add('hidden');
             } else {
-                entityCheckboxesContainer.style.opacity = '1';
-                entityCheckboxes().forEach(cb => cb.disabled = false);
+                tabSecurity.className = inactiveClasses;
+                tabExpert.className = activeClasses;
+                panelSecurity.classList.add('hidden');
+                panelExpert.classList.remove('hidden');
             }
+        }
+
+        tabSecurity.addEventListener('click', () => setActiveTab('security'));
+        tabExpert.addEventListener('click', () => setActiveTab('expert'));
+
+        document.querySelectorAll('input[name="securityLevel"]').forEach(r => {
+            r.addEventListener('change', () => {
+                currentLevel = r.value;
+                renderLevelEntities();
+            });
         });
+
+        renderLevelEntities();
+        renderExpertEntities();
 
         let isDownloadReady = false;
         let tempOutputPath = null;
@@ -361,15 +436,11 @@
             processBtn.disabled = true;
             processBtn.textContent = 'Processing...';
             updateStatus('Processing file... Please wait.', 'info');
+            setProgress(10, 'Starting...');
 
             try {
-                const policy = maskAllCheckbox.checked
-                    ? { mask_all: true }
-                    : {
-                        entities: entityCheckboxes()
-                            .filter((el) => el.checked)
-                            .map((el) => el.getAttribute('data-entity'))
-                    };
+                const policy = buildPolicy();
+                setProgress(25, 'Policy prepared');
                 const result = await window.electronAPI.processDocument({ inputPath, policy });
 
                 if (result.status === 'success') {
@@ -380,6 +451,7 @@
                         successMsg += `\n\n[INFO] Debug log: ${result.log_file}`;
                     }
                     updateStatus(successMsg, 'success');
+                    setProgress(100, 'Completed');
                     processBtn.textContent = 'Save Now';
                     processBtn.classList.add('download-ready');
                     processBtn.disabled = false;
@@ -394,21 +466,38 @@
                         errorMsg += `\n\n📋 Debug log: ${result.log_file}`;
                     }
                     updateStatus(errorMsg, 'error');
+                    setProgress(0, 'Idle');
                     processBtn.disabled = false;
                     processBtn.textContent = 'Process File';
                 }
             } catch (error) {
                 updateStatus(`[ERROR] Unexpected error: ${error.message}`, 'error');
+                setProgress(0, 'Idle');
                 processBtn.disabled = false;
                 processBtn.textContent = 'Process File';
             }
         });
 
+        function buildPolicy() {
+            if (currentTab === 'security') {
+                return { entities: SECURITY_LEVELS[currentLevel] };
+            }
+            const selected = Array.from(document.querySelectorAll('.expert-entity'))
+                .filter(el => el.checked)
+                .map(el => el.getAttribute('data-entity'));
+            return { entities: selected };
+        }
+
+        function setProgress(percent, text) {
+            progressBar.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+            progressText.textContent = text;
+        }
+
         // Function to display entity mapping report automatically after processing
         async function displayEntityMappingReport(sessionId) {
             try {
-                reportSection.style.display = 'block';
-                reportContent.innerHTML = '<p>Loading entity mapping report...</p>';
+                reportSection.classList.remove('hidden');
+                reportContent.innerHTML = '<p class="text-sm text-gray-600">Loading entity mapping report...</p>';
 
                 const reportResult = await window.electronAPI.getEntityMappingReport({ sessionId });
 
@@ -417,27 +506,27 @@
                     let reportHtml = '';
 
                     // Statistics section
-                    reportHtml += '<div class="statistics">';
-                    reportHtml += `<div class="stat-card"><div class="value">${report.total_entities}</div><div class="label">Total Entities</div></div>`;
-                    reportHtml += `<div class="stat-card"><div class="value">${Object.keys(report.entities_by_type).length}</div><div class="label">Entity Types</div></div>`;
+                    reportHtml += '<div class="grid grid-cols-1 sm:grid-cols-3 gap-2">';
+                    reportHtml += `<div class="p-3 bg-blue-50 rounded-md text-center"><div class="text-xl font-bold text-blue-700">${report.total_entities}</div><div class="text-xs text-blue-800">Total Entities</div></div>`;
+                    reportHtml += `<div class="p-3 bg-blue-50 rounded-md text-center"><div class="text-xl font-bold text-blue-700">${Object.keys(report.entities_by_type).length}</div><div class="text-xs text-blue-800">Entity Types</div></div>`;
                     if (report.document_path) {
-                        const docName = report.document_path.split(/[/\\]/).pop();
-                        reportHtml += `<div class="stat-card"><div class="value" style="font-size: 14px; word-break: break-word;">${docName}</div><div class="label">Document</div></div>`;
+                        const docName = report.document_path.split(/[/\\\\]/).pop();
+                        reportHtml += `<div class="p-3 bg-blue-50 rounded-md text-center"><div class="text-sm font-semibold text-blue-700 break-words">${docName}</div><div class="text-xs text-blue-800">Document</div></div>`;
                     }
                     reportHtml += '</div>';
 
                     // Entities by type
                     if (Object.keys(report.entities_by_type).length > 0) {
-                        reportHtml += '<h4>Entities by Type</h4>';
+                        reportHtml += '<h4 class="mt-4 mb-2 text-gray-800 font-medium">Entities by Type</h4>';
                         for (const [entityType, entities] of Object.entries(report.entities_by_type)) {
-                            reportHtml += `<div class="entity-type-group">`;
-                            reportHtml += `<h4 style="margin-top: 0; margin-bottom: 10px; color: #007acc;">${entityType} (${entities.length})</h4>`;
+                            reportHtml += `<div class="mb-4 p-3 bg-gray-50 border-l-4 border-blue-600 rounded">`;
+                            reportHtml += `<h4 class="m-0 mb-2 text-blue-700 font-semibold">${entityType} (${entities.length})</h4>`;
 
                             for (const entity of entities) {
-                                reportHtml += `<div class="entity-item">`;
-                                reportHtml += `<div class="original">Original: ${escapeHtml(entity.original_text)}</div>`;
-                                reportHtml += `<div class="masked">Masked: ${escapeHtml(entity.masked_text)}</div>`;
-                                reportHtml += `<div class="meta">`;
+                                reportHtml += `<div class="mb-2 p-2 bg-white border rounded">`;
+                                reportHtml += `<div class="font-semibold text-red-700">Original: ${escapeHtml(entity.original_text)}</div>`;
+                                reportHtml += `<div class="text-blue-700">Masked: ${escapeHtml(entity.masked_text)}</div>`;
+                                reportHtml += `<div class="text-xs text-gray-600 mt-1">`;
                                 reportHtml += `Confidence: ${(entity.confidence * 100).toFixed(1)}%`;
                                 if (entity.policy_applied && Object.keys(entity.policy_applied).length > 0) {
                                     reportHtml += ` | Action: ${entity.policy_applied.action || 'N/A'}`;
@@ -448,12 +537,12 @@
                             reportHtml += `</div>`;
                         }
                     } else {
-                        reportHtml += '<p>No entities were masked in this session.</p>';
+                        reportHtml += '<p class="text-sm text-gray-600">No entities were masked in this session.</p>';
                     }
 
                     // Session metadata
-                    reportHtml += '<h4>Session Information</h4>';
-                    reportHtml += '<div style="font-size: 12px; color: #666; margin-top: 10px;">';
+                    reportHtml += '<h4 class="mt-4 mb-2 text-gray-800 font-medium">Session Information</h4>';
+                    reportHtml += '<div class="text-xs text-gray-600 mt-2">';
                     reportHtml += `<p><strong>Session ID:</strong> ${report.session_id}</p>`;
                     if (report.created_at) {
                         reportHtml += `<p><strong>Created:</strong> ${new Date(report.created_at).toLocaleString()}</p>`;
