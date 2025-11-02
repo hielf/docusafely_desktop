@@ -3,22 +3,52 @@ const path = require('path');
 // Refactor mocks to keep all factories self-contained and avoid out-of-scope usage
 
 jest.mock('electron', () => {
-  const ipcMain = { handle: jest.fn() };
+  const ipcMain = {
+    handle: jest.fn(),
+    on: jest.fn()
+  };
   const app = {
     isPackaged: false,
-    whenReady: () => ({ then: () => { } }),
+    whenReady: jest.fn(() => Promise.resolve()),
     on: jest.fn(),
+    getName: jest.fn(() => 'DocuSafely'),
+    getPath: jest.fn((name) => `/tmp/${name}`),
+    dock: { setMenu: jest.fn(), setBadge: jest.fn() },
+    setJumpList: jest.fn()
   };
   const BrowserWindow = function () {
     this.loadFile = jest.fn();
-    this.webContents = { openDevTools: jest.fn() };
+    this.webContents = { openDevTools: jest.fn(), send: jest.fn() };
+    this.minimize = jest.fn();
+    this.maximize = jest.fn();
+    this.unmaximize = jest.fn();
+    this.close = jest.fn();
+    this.isMaximized = jest.fn(() => false);
+    this.isDestroyed = jest.fn(() => false);
+    this.isVisible = jest.fn(() => true);
+    this.setTitleBarOverlay = jest.fn();
+    this.setMinimumSize = jest.fn();
+    this.on = jest.fn();
   };
   BrowserWindow.getAllWindows = () => [];
+  const Menu = {
+    buildFromTemplate: jest.fn(() => ({ items: [] })),
+    setApplicationMenu: jest.fn()
+  };
+  const nativeTheme = {
+    shouldUseDarkColors: false,
+    on: jest.fn(),
+    emit: jest.fn(),
+    removeListener: jest.fn()
+  };
   return {
     app,
     BrowserWindow,
     ipcMain,
-    dialog: {},
+    dialog: { showOpenDialog: jest.fn(), showSaveDialog: jest.fn() },
+    Menu,
+    nativeTheme,
+    systemPreferences: { getUserDefault: jest.fn() }
   };
 });
 

@@ -1,6 +1,6 @@
 {
   "name": "docusafely-desktop",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "main": "src/main.js",
   "description": "DocuSafely Desktop - Document masking and PII detection application",
   "author": "hielf",
@@ -8,6 +8,9 @@
   "homepage": "https://github.com/hielf/docusafely-desktop",
   "scripts": {
     "start": "electron .",
+    "start:mac": "DOCUSAFELY_PLATFORM=darwin electron .",
+    "start:win": "DOCUSAFELY_PLATFORM=win32 electron .",
+    "start:linux": "DOCUSAFELY_PLATFORM=linux electron .",
     "prebuild": "node scripts/bundle-backend.js",
     "build": "electron-builder",
     "build:win": "electron-builder --win",
@@ -29,7 +32,9 @@
     "privacy",
     "desktop-app"
   ],
-  "dependencies": {},
+  "dependencies": {
+    "custom-electron-titlebar": "^4.2.8"
+  },
   "devDependencies": {
     "electron": "^38.1.0",
     "electron-builder": "^26.0.12",

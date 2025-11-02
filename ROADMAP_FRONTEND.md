@@ -9,6 +9,47 @@ Short- and mid-term plan to evolve user experience, interface design, and policy
 - **Dark/Light Mode**: Toggle between themes with system preference detection.
 - **Consistent Design System**: Establish design tokens, components, and patterns for cohesive user experience.
 
+### Platform-Specific Native UI Requirements
+
+#### Common Requirements (General UI/UX)
+- **Frameless Window**: The application must utilize a frameless window (`frame: false`) to allow for complete customization of the window chrome.
+- **Platform Theme Adaptation**: The application must dynamically detect and adapt to the system's preferred theme (Light/Dark Mode) via the `nativeTheme` API. All visual components (colors, icons, text) must automatically switch to match the operating system's theme.
+- **App Region Control**: All draggable areas must be strictly defined using the `-webkit-app-region: drag` CSS property, with interactive elements explicitly set to `-webkit-app-region: no-drag`.
+- **Native Fonts**: All rendered text must utilize the platform's default system font stacks:
+  - **macOS**: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif`
+  - **Windows**: `'Segoe UI', Tahoma, Arial, sans-serif`
+
+#### macOS Native UI/UX Requirements
+
+A. Native Implementation Details (Electron API)
+- **Title Bar Style**: Set `BrowserWindow.titleBarStyle` to `'hiddenInset'` to blend the title bar with the window content while retaining the native traffic light controls.
+- **Native Menus**: Implement a full native application menu (File, Edit, View, Window, Help) using `Menu.setApplicationMenu()` to ensure all standard Cmd+[Key] shortcuts and menu bar behaviors are preserved.
+- **Dock Integration**: Implement badge number display (`app.dock.setBadge()`) for unread notifications and provide a native right-click Dock menu (`app.dock.setMenu()`) for quick actions.
+- **Title Bar Double-Click**: Listen for double-click events on the custom drag region and query `systemPreferences.getUserDefault('AppleActionOnDoubleClick', 'string')` to correctly honor the user's system preference (Minimize or Zoom/Maximize).
+
+#### Windows Native UI/UX Requirements
+
+A. Native Implementation Details (Electron API)
+- **Native Controls Overlay**: Utilize the `BrowserWindow.titleBarOverlay` feature to hide the HTML title and allow for a fully customizable title bar background while preserving native system controls (Minimize, Maximize, Close buttons).
+- **Control Button Color**: Ensure the symbol color of the native window controls (`titleBarOverlay.symbolColor`) dynamically switches between black (light theme) and white (dark theme) to maintain visibility against the custom background color.
+- **Taskbar Integration**: Implement a progress bar overlay on the taskbar icon (`win.setProgressBar()`) to provide feedback during long operations (e.g., file transfer, download).
+- **Jump List**: Define a custom Jump List in the taskbar right-click menu (`app.setJumpList()`) including recent files and common application tasks, adhering to Windows guidelines.
+- **Custom Frame Drag**: If a custom title bar is implemented, ensure the entire drag area correctly handles the Windows double-click behavior (Maximize/Restore) via IPC calls to `win.maximize()` or `win.unmaximize()`.
+
+#### Linux Native UI/UX Requirements
+
+A. UI Integration (Desktop Environment Support)
+- **GTK Integration**: Leverage Electron's built-in GTK support for proper integration with GNOME, XFCE, and other GTK-based desktop environments.
+- **System Tray**: Implement system tray icon (`app.dock` API works on Linux) for running in background and quick access.
+- **Native Notifications**: Use `new Notification()` API for system-level notifications consistent with desktop environment standards.
+- **Desktop File**: Ensure proper .desktop file generation for application launcher integration and file type associations.
+
+B. Native Implementation Details (Electron API)
+- **AppData Integration**: Use appropriate paths for user data and application config (`app.getPath('userData')`, `app.getPath('appData')`).
+- **Theme Detection**: Detect system theme preferences using `nativeTheme` API for automatic light/dark mode adaptation.
+- **Window Management**: Support standard window manager features (minimize, maximize, restore) via appropriate IPC handlers.
+- **Platform-Specific Shortcuts**: Ensure keyboard shortcuts work appropriately across different desktop environments.
+
 ### Security Level Management
 - **Policy Groups**: Implement three security level groups: Basic, Balanced, and Strict.
 - **Entity Group Assignment**: Assign current entities into appropriate security level groups:
@@ -121,19 +162,25 @@ Short- and mid-term plan to evolve user experience, interface design, and policy
   - [x] Remove all "mask_all" options from interface.
   - [x] Integrate entity mapping system with session tracking.
   - [x] Remove "Generate dry-run report" option.
-- M2: Policy Management & Automatic Reports
+- M2: Platform-Specific Native UI Implementation
+  - Implement common platform requirements (frameless window, theme adaptation, app region control, native fonts).
+  - Implement macOS native UI features (title bar style, native menus, dock integration, title bar double-click).
+  - Implement Windows native UI features (native controls overlay, taskbar integration, jump list, custom frame drag).
+  - Implement Linux native UI features (GTK integration, system tray, notifications).
+  - Ensure cross-platform compatibility and testing.
+- M3: Policy Management & Automatic Reports
   - Implement per-entity action selector and template editor.
   - Automatically display entity masking report after processing based on session mapping data.
   - Create policy validation and preset management.
   - Implement report export functionality.
   - Add session history and mapping file management interface.
-- M3: Advanced Features & Integration
+- M4: Advanced Features & Integration
   - Add batch processing and file management features.
   - Implement advanced settings interface.
   - Create comprehensive help system and documentation.
   - Add accessibility features and multi-language support.
   - Implement context restoration and audit log export.
-- M4: Enterprise & Performance
+- M5: Enterprise & Performance
   - Implement enterprise features and team management.
   - Add cloud storage integration and workflow automation.
   - Optimize performance and add offline support.
@@ -146,3 +193,4 @@ Short- and mid-term plan to evolve user experience, interface design, and policy
 - **User Adoption**: Complex interfaces may reduce adoption; mitigate with intuitive design and comprehensive help system.
 - **Accessibility Compliance**: Ensuring full accessibility may be challenging; mitigate with early testing and expert consultation.
 - **Mapping File Storage**: Risk of storage bloat or corruption; mitigate with automatic cleanup, validation, and readable JSON format for easy access and recovery.
+- **Platform-Specific UI**: Risk of inconsistencies across platforms or breaking native behaviors; mitigate with thorough cross-platform testing, following platform-specific design guidelines, and using well-maintained third-party modules when required.

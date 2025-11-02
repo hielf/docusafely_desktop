@@ -1,22 +1,84 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, nativeTheme, systemPreferences } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
+const { setupTitlebar, attachTitlebarToWindow } = require('custom-electron-titlebar/main');
 
 let mainWindow;
 
+// Detect platform override for testing
+function getPlatform() {
+  const override = process.env.DOCUSAFELY_PLATFORM;
+  if (override) {
+    console.log(`[Platform Override] Using ${override} platform for testing`);
+    return override;
+  }
+  return process.platform;
+}
+
 function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+  const platform = getPlatform();
+  const isMac = platform === 'darwin';
+  const isWindows = platform === 'win32';
+  const isLinux = platform === 'linux';
+
+  // Base window configuration
+  const windowConfig = {
+    width: 600,
+    height: 400,
+    minWidth: 550,
+    minHeight: 350,
+    backgroundColor: isMac ? '#00000000' : (nativeTheme.shouldUseDarkColors ? '#1e1e1e' : '#ffffff'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: false,
       preload: path.join(__dirname, 'preload.js')
     }
-  });
+  };
+
+  // Platform-specific configurations
+  if (isMac) {
+    // macOS: Frameless with vibrancy and hiddenInset title bar
+    windowConfig.frame = false;
+    windowConfig.titleBarStyle = 'hidden';
+    windowConfig.vibrancy = 'sidebar'; // macOS vibrancy effect
+    windowConfig.transparent = true;
+  } else if (isWindows) {
+    // Windows: Frameless with overlay title bar
+    windowConfig.frame = false;
+    windowConfig.titleBarStyle = 'hidden';
+    windowConfig.titleBarOverlay = true;
+  } else if (isLinux) {
+    // Linux: Frameless window
+    windowConfig.frame = false;
+    windowConfig.titleBarStyle = 'hidden';
+    windowConfig.backgroundColor = nativeTheme.shouldUseDarkColors ? '#2b2b2b' : '#ffffff';
+  }
+
+  mainWindow = new BrowserWindow(windowConfig);
+
+  // Attach titlebar to window
+  attachTitlebarToWindow(mainWindow);
 
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
+
+  // Platform-specific initialization
+  if (isMac) {
+    setupMacOSFeatures();
+  } else if (isWindows) {
+    setupWindowsFeatures();
+  } else if (isLinux) {
+    setupLinuxFeatures();
+  }
+
+  // Listen for theme changes
+  nativeTheme.on('updated', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      // Notify renderer process of theme change
+      mainWindow.webContents.send('theme-changed', nativeTheme.shouldUseDarkColors);
+    }
+  });
 
   // Open DevTools in development
   if (process.env.NODE_ENV === 'development') {
@@ -24,7 +86,169 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(createWindow);
+function setupMacOSFeatures() {
+  // macOS Dock badge support
+  if (app.dock) {
+    // Example: Set badge when processing
+    // app.dock.setBadge('');
+
+    // Create Dock menu
+    const dockMenu = Menu.buildFromTemplate([
+      { label: 'Process Document', click: () => mainWindow.webContents.send('dock-action', 'process') },
+      { label: 'Preferences', click: () => mainWindow.webContents.send('dock-action', 'prefs') },
+      { type: 'separator' },
+      { label: 'Quit', click: () => app.quit() }
+    ]);
+    app.dock.setMenu(dockMenu);
+  }
+}
+
+function setupWindowsFeatures() {
+  // Windows Taskbar progress bar example
+  // mainWindow.setProgressBar(0.5); // 50% progress
+
+  // Windows Jump List
+  if (app.setJumpList) {
+    app.setJumpList({
+      categories: [
+        {
+          name: 'Tasks',
+          items: [
+            { type: 'task', title: 'Process Document', program: process.execPath, args: '--process' },
+            { type: 'task', title: 'Open Settings', program: process.execPath, args: '--settings' }
+          ]
+        },
+        {
+          name: 'Recent Files',
+          items: [] // Will be populated with actual recent files
+        }
+      ]
+    });
+  }
+}
+
+function setupLinuxFeatures() {
+  // Linux system tray would go here
+  // Note: Tray requires 'electron' Tray class
+}
+
+// Create native application menu
+function createMenu() {
+  const platform = getPlatform();
+  const isMac = platform === 'darwin';
+  const isWindows = platform === 'win32';
+
+  const template = [];
+
+  // macOS: File menu
+  if (isMac) {
+    template.push({
+      label: app.getName(),
+      submenu: [
+        { role: 'about', label: `About ${app.getName()}` },
+        { type: 'separator' },
+        { role: 'services', label: 'Services' },
+        { type: 'separator' },
+        { role: 'hide', label: `Hide ${app.getName()}` },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit', label: `Quit ${app.getName()}` }
+      ]
+    });
+  }
+
+  // File menu
+  template.push({
+    label: 'File',
+    submenu: [
+      {
+        label: 'Open File',
+        accelerator: 'CmdOrCtrl+O',
+        click: () => mainWindow.webContents.send('menu-action', 'open-file')
+      },
+      {
+        label: 'Process Document',
+        accelerator: 'CmdOrCtrl+P',
+        click: () => mainWindow.webContents.send('menu-action', 'process-document')
+      },
+      { type: 'separator' },
+      { role: 'quit', label: isMac ? 'Quit' : 'Exit' }
+    ]
+  });
+
+  // Edit menu
+  template.push({
+    label: 'Edit',
+    submenu: [
+      { role: 'undo' },
+      { role: 'redo' },
+      { type: 'separator' },
+      { role: 'cut' },
+      { role: 'copy' },
+      { role: 'paste' },
+      { role: 'pasteAndMatchStyle' },
+      { role: 'delete' },
+      { role: 'selectAll' }
+    ]
+  });
+
+  // View menu
+  template.push({
+    label: 'View',
+    submenu: [
+      { role: 'reload' },
+      { role: 'forceReload' },
+      { role: 'toggleDevTools' },
+      { type: 'separator' },
+      { role: 'resetZoom' },
+      { role: 'zoomIn' },
+      { role: 'zoomOut' },
+      { type: 'separator' },
+      { role: 'togglefullscreen' }
+    ]
+  });
+
+  // Window menu (macOS)
+  if (isMac) {
+    template.push({
+      label: 'Window',
+      submenu: [
+        { role: 'close' },
+        { role: 'minimize' },
+        { role: 'zoom' },
+        { type: 'separator' },
+        { role: 'front' }
+      ]
+    });
+  }
+
+  // Help menu
+  template.push({
+    label: 'Help',
+    submenu: [
+      {
+        label: 'Documentation',
+        click: () => mainWindow.webContents.send('menu-action', 'documentation')
+      },
+      {
+        label: 'About',
+        click: () => mainWindow.webContents.send('menu-action', 'about')
+      }
+    ]
+  });
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+}
+
+app.whenReady().then(() => {
+  // Setup titlebar
+  setupTitlebar();
+
+  createMenu();
+  createWindow();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -36,6 +260,37 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
+});
+
+// IPC handlers for window management
+ipcMain.on('window-minimize', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.minimize();
+  }
+});
+
+ipcMain.on('window-maximize', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+    } else {
+      mainWindow.maximize();
+    }
+  }
+});
+
+ipcMain.on('window-close', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.close();
+  }
+});
+
+ipcMain.handle('window-is-maximized', () => {
+  return mainWindow && !mainWindow.isDestroyed() ? mainWindow.isMaximized() : false;
+});
+
+ipcMain.handle('get-theme', () => {
+  return nativeTheme.shouldUseDarkColors;
 });
 
 // IPC handlers

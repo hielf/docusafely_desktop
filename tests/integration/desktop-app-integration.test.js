@@ -10,23 +10,51 @@ jest.mock('electron', () => ({
       if (name === 'temp') return '/tmp';
       return '/tmp';
     }),
-    whenReady: () => Promise.resolve(),
-    on: jest.fn()
+    whenReady: jest.fn(() => Promise.resolve()),
+    on: jest.fn(),
+    getName: jest.fn(() => 'DocuSafely'),
+    dock: { setMenu: jest.fn(), setBadge: jest.fn() },
+    setJumpList: jest.fn(),
+    quit: jest.fn()
   },
   BrowserWindow: (() => {
     const BrowserWindow = function () {
       this.loadFile = jest.fn();
-      this.webContents = { openDevTools: jest.fn() };
+      this.webContents = { openDevTools: jest.fn(), send: jest.fn() };
+      this.minimize = jest.fn();
+      this.maximize = jest.fn();
+      this.unmaximize = jest.fn();
+      this.close = jest.fn();
+      this.isMaximized = jest.fn(() => false);
+      this.isDestroyed = jest.fn(() => false);
+      this.isVisible = jest.fn(() => true);
+      this.setTitleBarOverlay = jest.fn();
+      this.setMinimumSize = jest.fn();
+      this.on = jest.fn();
     };
     BrowserWindow.getAllWindows = () => [];
     return BrowserWindow;
   })(),
   ipcMain: {
-    handle: jest.fn()
+    handle: jest.fn(),
+    on: jest.fn()
   },
   dialog: {
     showOpenDialog: jest.fn(),
     showSaveDialog: jest.fn()
+  },
+  Menu: {
+    buildFromTemplate: jest.fn(() => ({ items: [] })),
+    setApplicationMenu: jest.fn()
+  },
+  nativeTheme: {
+    shouldUseDarkColors: false,
+    on: jest.fn(),
+    emit: jest.fn(),
+    removeListener: jest.fn()
+  },
+  systemPreferences: {
+    getUserDefault: jest.fn()
   }
 }));
 

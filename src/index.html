@@ -4,567 +4,1050 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Doc Masking - Text Processor</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
+    <title>DocuSafely</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
-        .container {
+        input,
+        textarea {
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        /* Platform-specific fonts from roadmap */
+        :root {
+            --font-mac: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --font-windows: 'Segoe UI', Tahoma, Arial, sans-serif;
+            --font-default: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-default);
+            background: #f5f5f5;
+            color: #333;
+            min-height: 100vh;
+            overflow: hidden;
+            margin: 0;
+            height: 100vh;
+        }
+
+        body[data-theme="dark"] {
+            background: #1e1e1e;
+            color: #fff;
+        }
+
+        /* macOS vibrancy effect */
+        body[data-platform="darwin"] {
+            background: transparent;
+        }
+
+        body[data-platform="darwin"] .panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(30px) saturate(180%);
+            -webkit-backdrop-filter: blur(30px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        body[data-platform="darwin"][data-theme="dark"] .panel {
+            background: rgba(30, 30, 30, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Windows/Linux solid panels */
+        body[data-platform="win32"] .panel,
+        body[data-platform="linux"] .panel {
             background: white;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        body[data-platform="win32"][data-theme="dark"] .panel,
+        body[data-platform="linux"][data-theme="dark"] .panel {
+            background: #2b2b2b;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Layout */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .panel {
+            width: 100%;
+            flex: 1;
             padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 0;
+            box-shadow: none;
+            display: flex;
+            flex-direction: column;
         }
 
         h1 {
-            color: #333;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
             text-align: center;
-            margin-bottom: 30px;
         }
 
-        .form-group {
-            margin-bottom: 20px;
+        .subtitle {
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 24px;
+            opacity: 0.7;
         }
 
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-            color: #555;
-        }
-
-        .input-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        input[type="text"] {
-            flex: 1;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-
-        input[type="text"]:focus {
-            outline: none;
-            border-color: #007acc;
-        }
-
-        button {
-            padding: 10px 20px;
-            background-color: #007acc;
-            color: white;
-            border: none;
-            border-radius: 5px;
+        /* File drag and drop area */
+        .file-drop-zone {
+            border: 2px dashed #ddd;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
             cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(0, 0, 0, 0.02);
+            height: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-drop-zone:hover {
+            border-color: #007acc;
+            background: rgba(0, 122, 204, 0.05);
+        }
+
+        .file-drop-zone.drag-over {
+            border-color: #007acc;
+            background: rgba(0, 122, 204, 0.1);
+            border-style: solid;
+        }
+
+        .file-drop-zone .drop-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .file-drop-zone .drop-text {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .file-drop-zone .drop-hint {
+            font-size: 13px;
+            opacity: 0.6;
+        }
+
+        /* File selected display */
+        .file-drop-zone.has-file .drop-icon,
+        .file-drop-zone.has-file .drop-text,
+        .file-drop-zone.has-file .drop-hint {
+            display: none;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .file-item-name {
             font-size: 14px;
-            transition: background-color 0.2s;
+            font-weight: 500;
+            max-width: 400px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
-        button:hover {
-            background-color: #005a9e;
+        .file-item-remove {
+            width: 24px;
+            height: 24px;
+            min-width: 24px;
+            background: rgba(220, 53, 69, 0.15);
+            color: #dc3545;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            transition: all 0.2s ease;
         }
 
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
+        .file-item-remove:hover {
+            background: rgba(220, 53, 69, 0.3);
         }
 
-        /* Green style when ready to download */
-        button.download-ready {
-            background-color: #28a745;
+        body[data-theme="dark"] .file-item-remove {
+            background: rgba(220, 53, 69, 0.2);
         }
 
-        button.download-ready:hover {
-            background-color: #1e7e34;
+        body[data-theme="dark"] .file-item-remove:hover {
+            background: rgba(220, 53, 69, 0.4);
+        }
+
+        /* macOS specific drag and drop */
+        body[data-platform="darwin"] .file-drop-zone {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        body[data-platform="darwin"][data-theme="dark"] .file-drop-zone {
+            background: rgba(30, 30, 30, 0.6);
+        }
+
+        body[data-theme="dark"] .file-drop-zone {
+            background: rgba(43, 43, 43, 0.5);
+            border-color: #5b5b5b;
+        }
+
+        body[data-theme="dark"] .file-drop-zone:hover {
+            border-color: #007acc;
+            background: rgba(0, 122, 204, 0.15);
+        }
+
+        body[data-theme="dark"] .file-drop-zone.drag-over {
+            border-color: #007acc;
+            background: rgba(0, 122, 204, 0.2);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* Buttons */
+        button {
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .browse-btn {
+            padding: 12px 24px;
+            background: #007acc;
+            color: white;
+            white-space: nowrap;
+            border-radius: 8px;
+        }
+
+        .browse-btn:hover {
+            background: #005a9e;
         }
 
         .process-btn {
             width: 100%;
-            padding: 15px;
-            font-size: 16px;
+            padding: 10px 16px;
+            font-size: 15px;
             font-weight: 600;
-            margin-top: 20px;
+            background: #007acc;
+            color: white;
+            margin-bottom: 16px;
         }
 
-        .status {
-            margin-top: 20px;
-            padding: 15px;
+        .process-btn:disabled {
+            cursor: not-allowed;
+        }
+
+        /* macOS native button styling */
+        body[data-platform="darwin"] .process-btn {
+            background: #007AFF;
             border-radius: 5px;
-            min-height: 50px;
-            font-family: monospace;
-            white-space: pre-wrap;
+            padding: 8px 24px;
+            font-size: 14px;
+            font-weight: 400;
+            letter-spacing: 0.01em;
+        }
+
+        body[data-platform="darwin"] .process-btn:hover:not(:disabled) {
+            background: #0051D5;
+        }
+
+        body[data-platform="darwin"] .process-btn:active:not(:disabled) {
+            background: #0051D5;
+        }
+
+        body[data-platform="darwin"][data-theme="dark"] .process-btn {
+            background: #0A84FF;
+        }
+
+        body[data-platform="darwin"][data-theme="dark"] .process-btn:hover:not(:disabled) {
+            background: #409CFF;
+        }
+
+        body[data-platform="darwin"][data-theme="dark"] .process-btn:active:not(:disabled) {
+            background: #0051D5;
+        }
+
+        body[data-platform="darwin"] .process-btn:disabled {
+            background: #8E8E93;
+            opacity: 0.4;
+        }
+
+        /* Windows native button styling */
+        body[data-platform="win32"] .process-btn {
+            border-radius: 4px;
+            padding: 8px 24px;
+            font-size: 14px;
+            background: #0078D4;
+            font-weight: 400;
+        }
+
+        body[data-platform="win32"] .process-btn:hover:not(:disabled) {
+            background: #005A9E;
+        }
+
+        body[data-platform="win32"] .process-btn:active:not(:disabled) {
+            background: #004578;
+        }
+
+        body[data-platform="win32"][data-theme="dark"] .process-btn {
+            background: #0078D4;
+        }
+
+        body[data-platform="win32"][data-theme="dark"] .process-btn:hover:not(:disabled) {
+            background: #0066C0;
+        }
+
+        body[data-platform="win32"] .process-btn:disabled {
+            background: #D2D2D2;
+            color: #9E9E9E;
+        }
+
+        body[data-platform="win32"][data-theme="dark"] .process-btn:disabled {
+            background: #3F3F3F;
+            color: #6E6E6E;
+        }
+
+        /* Linux native button styling */
+        body[data-platform="linux"] .process-btn {
+            border-radius: 5px;
+            padding: 8px 24px;
+            font-size: 14px;
+            background: #007ACC;
+            font-weight: 400;
+        }
+
+        body[data-platform="linux"] .process-btn:hover:not(:disabled) {
+            background: #005A9E;
+        }
+
+        body[data-platform="linux"] .process-btn:active:not(:disabled) {
+            background: #004080;
+        }
+
+        body[data-platform="linux"][data-theme="dark"] .process-btn {
+            background: #0066CC;
+        }
+
+        body[data-platform="linux"][data-theme="dark"] .process-btn:hover:not(:disabled) {
+            background: #007ACC;
+        }
+
+        body[data-platform="linux"] .process-btn:disabled {
+            background: #A0A0A0;
+            cursor: not-allowed;
+        }
+
+        body[data-platform="linux"][data-theme="dark"] .process-btn:disabled {
+            background: #4A4A4A;
+            color: #8A8A8A;
+        }
+
+        /* Progress */
+        .progress {
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e5e5;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        body[data-theme="dark"] .progress-bar {
+            background: #4b4b4b;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #007acc;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            margin-top: 8px;
+            font-size: 13px;
+            opacity: 0.7;
+            text-align: center;
+        }
+
+        /* Status messages */
+        .status {
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .status.info {
+            background: #e3f2fd;
+            color: #0c5460;
         }
 
         .status.success {
-            background-color: #d4edda;
-            border: 1px solid #c3e6cb;
+            background: #d4edda;
             color: #155724;
         }
 
         .status.error {
-            background-color: #f8d7da;
-            border: 1px solid #f5c6cb;
+            background: #f8d7da;
             color: #721c24;
         }
 
-        .status.info {
-            background-color: #d1ecf1;
-            border: 1px solid #bee5eb;
-            color: #0c5460;
+        body[data-theme="dark"] .status.info {
+            background: rgba(33, 150, 243, 0.2);
+            color: #90caf9;
         }
 
-        .report-section {
-            margin-top: 20px;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            background: #fff;
-            max-height: 600px;
-            overflow-y: auto;
+        body[data-theme="dark"] .status.success {
+            background: rgba(76, 175, 80, 0.2);
+            color: #a5d6a7;
         }
 
-        .report-section h3 {
-            margin-top: 0;
+        body[data-theme="dark"] .status.error {
+            background: rgba(244, 67, 54, 0.2);
+            color: #ef9a9a;
+        }
+
+        body[data-platform="darwin"] .status.info {
+            background: rgba(227, 242, 253, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        body[data-platform="darwin"][data-theme="dark"] .status.info {
+            background: rgba(33, 150, 243, 0.2);
+        }
+
+        body[data-platform="darwin"] .status.success {
+            background: rgba(212, 237, 218, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        body[data-platform="darwin"][data-theme="dark"] .status.success {
+            background: rgba(76, 175, 80, 0.2);
+        }
+
+        body[data-platform="darwin"] .status.error {
+            background: rgba(248, 215, 218, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        body[data-platform="darwin"][data-theme="dark"] .status.error {
+            background: rgba(244, 67, 54, 0.2);
+        }
+
+        /* macOS native button interaction */
+        body[data-platform="darwin"] button {
+            transition: background-color 0.15s ease;
+        }
+
+        /* Custom title bar styling for bold "DocuSafely" */
+        .cet-title {
+            font-weight: 600 !important;
+        }
+
+        /* Fix titlebar container scrolling */
+        .cet-container {
+            overflow: hidden !important;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        body[data-theme="dark"] .tabs {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .tab {
+            padding: 8px 0;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            transition: color 0.15s ease;
             color: #333;
-            border-bottom: 2px solid #007acc;
-            padding-bottom: 10px;
         }
 
-        .report-section h4 {
-            color: #555;
-            margin-top: 20px;
-            margin-bottom: 10px;
+        body[data-theme="dark"] .tab {
+            color: #fff;
         }
 
-        .entity-type-group {
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-left: 4px solid #007acc;
-            border-radius: 4px;
+        .tab.active {
+            color: #007AFF;
+            border-bottom-color: #007AFF;
         }
 
-        .entity-item {
-            margin-bottom: 10px;
-            padding: 10px;
-            background: white;
-            border-radius: 4px;
-            border: 1px solid #e0e0e0;
+        body[data-theme="dark"] .tab.active {
+            color: #409CFF;
+            border-bottom-color: #409CFF;
         }
 
-        .entity-item .original {
-            font-weight: 600;
-            color: #d32f2f;
-            margin-bottom: 5px;
+        body[data-platform="win32"] .tab.active {
+            color: #0078D4;
+            border-bottom-color: #0078D4;
         }
 
-        .entity-item .masked {
-            color: #1976d2;
-            margin-bottom: 5px;
+        body[data-platform="win32"][data-theme="dark"] .tab.active {
+            color: #0078D4;
+            border-bottom-color: #0078D4;
         }
 
-        .entity-item .meta {
-            font-size: 12px;
-            color: #666;
-            margin-top: 5px;
+        .tab:not(.active) {
+            opacity: 0.6;
         }
 
-        .statistics {
+        .tab:hover:not(.active) {
+            opacity: 1;
+        }
+
+        /* Policy cards */
+        .policy-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-            margin-bottom: 20px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
         }
 
-        .stat-card {
-            padding: 15px;
-            background: #e3f2fd;
-            border-radius: 6px;
-            text-align: center;
+        .policy-card {
+            padding: 12px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            background: transparent;
         }
 
-        .stat-card .value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #1976d2;
+        body[data-theme="dark"] .policy-card {
+            border-color: rgba(255, 255, 255, 0.15);
         }
 
-        .stat-card .label {
+        .policy-card:hover {
+            border-color: #007AFF;
+        }
+
+        body[data-theme="dark"] .policy-card:hover {
+            border-color: #409CFF;
+        }
+
+        .policy-card.selected {
+            border-color: #007AFF;
+            background: rgba(0, 122, 255, 0.05);
+        }
+
+        body[data-theme="dark"] .policy-card.selected {
+            border-color: #409CFF;
+            background: rgba(64, 156, 255, 0.1);
+        }
+
+        .policy-radio {
+            margin: 0 8px 0 0;
+            cursor: pointer;
+        }
+
+        .policy-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .policy-desc {
             font-size: 12px;
-            color: #666;
-            margin-top: 5px;
+            opacity: 0.7;
+        }
+
+        /* Entities list */
+        .entities-section {
+            margin-bottom: 24px;
+        }
+
+        .entities-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .entities-list {
+            font-size: 13px;
+            opacity: 0.8;
+        }
+
+        /* Expert Options panel */
+        #panel-expert {
+            display: none;
+        }
+
+        .expert-entities-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .expert-entity-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            background: transparent;
+        }
+
+        body[data-theme="dark"] .expert-entity-item {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .expert-entity-item:hover {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        body[data-theme="dark"] .expert-entity-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .expert-checkbox {
+            cursor: pointer;
+        }
+
+        .expert-entity-label {
+            font-size: 13px;
+            flex: 1;
         }
     </style>
 </head>
 
 <body>
-    <div class="max-w-4xl mx-auto p-6 bg-gray-50 min-h-screen">
-        <h1 class="text-2xl font-semibold text-gray-800 text-center mb-6">DocuSafely - Text Processor</h1>
+    <div class="app-container">
+        <div class="content">
+            <div class="panel">
+                <div class="status info" id="status">Select a file to begin</div>
 
-        <div class="bg-white rounded-xl shadow p-6">
-            <div class="mb-5">
-                <label for="inputPath" class="block text-sm font-medium text-gray-700 mb-2">Input File Path</label>
-                <div class="flex gap-2">
-                    <input type="text" id="inputPath"
-                        class="flex-1 border-2 border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:border-blue-500"
-                        placeholder="Select or enter input file path...">
-                    <button type="button" id="selectInputBtn"
-                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Browse</button>
+                <!-- Hidden file input -->
+                <input type="file" id="hiddenFileInput" accept=".txt,.pdf" style="display: none;">
+
+                <!-- Drag and drop zone -->
+                <div class="file-drop-zone" id="dropZone">
+                    <div class="drop-icon">📄</div>
+                    <div class="drop-text">Drop file here or click to select</div>
                 </div>
-            </div>
 
-            <div class="border-b border-gray-200 mb-4">
-                <nav class="-mb-px flex gap-4" aria-label="Tabs">
-                    <button id="tab-security"
-                        class="py-2 px-3 border-b-2 border-blue-600 text-blue-600 font-medium">Security Level</button>
-                    <button id="tab-expert"
-                        class="py-2 px-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700">Expert
-                        Options</button>
-                </nav>
-            </div>
+                <!-- File item will be inserted here dynamically -->
 
-            <div id="panel-security" class="space-y-4">
-                <div>
-                    <p class="text-sm text-gray-600 mb-2">Choose a security level. Entities are included automatically.
-                    </p>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <label class="border rounded-md p-3 cursor-pointer hover:bg-gray-50">
-                            <input type="radio" name="securityLevel" value="basic" class="mr-2" checked>
-                            <span class="font-medium">Basic</span>
-                            <div class="text-xs text-gray-500 mt-1">Names, addresses, phone, email</div>
-                        </label>
-                        <label class="border rounded-md p-3 cursor-pointer hover:bg-gray-50">
-                            <input type="radio" name="securityLevel" value="balanced" class="mr-2">
-                            <span class="font-medium">Balanced</span>
-                            <div class="text-xs text-gray-500 mt-1">Basic + SSN, credit cards, bank, driver IDs</div>
-                        </label>
-                        <label class="border rounded-md p-3 cursor-pointer hover:bg-gray-50">
-                            <input type="radio" name="securityLevel" value="strict" class="mr-2">
-                            <span class="font-medium">Strict</span>
-                            <div class="text-xs text-gray-500 mt-1">All entities incl. credentials, health, legal</div>
-                        </label>
+                <!-- Tabs -->
+                <div class="tabs">
+                    <button class="tab active" id="tab-security">Security Level</button>
+                    <button class="tab" id="tab-expert">Expert Options</button>
+                </div>
+
+                <!-- Security Level Panel -->
+                <div id="panel-security">
+                    <p style="font-size: 13px; margin-bottom: 16px; opacity: 0.8;">Choose a security level. Entities are
+                        included automatically.</p>
+
+                    <div class="policy-grid">
+                        <div class="policy-card selected" data-level="basic">
+                            <input type="radio" name="securityLevel" value="basic" class="policy-radio" checked>
+                            <div>
+                                <div class="policy-title">Basic</div>
+                                <div class="policy-desc">Names, addresses, phone, email</div>
+                            </div>
+                        </div>
+                        <div class="policy-card" data-level="balanced">
+                            <input type="radio" name="securityLevel" value="balanced" class="policy-radio">
+                            <div>
+                                <div class="policy-title">Balanced</div>
+                                <div class="policy-desc">Basic + SSN, credit cards, bank, driver IDs</div>
+                            </div>
+                        </div>
+                        <div class="policy-card" data-level="strict">
+                            <input type="radio" name="securityLevel" value="strict" class="policy-radio">
+                            <div>
+                                <div class="policy-title">Strict</div>
+                                <div class="policy-desc">All entities incl. credentials, health, legal</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="entities-section">
+                        <div class="entities-title">Entities included</div>
+                        <div class="entities-list" id="level-entities"></div>
                     </div>
                 </div>
-                <div>
-                    <h3 class="text-sm font-medium text-gray-700 mb-2">Entities included</h3>
-                    <div id="level-entities" class="text-sm text-gray-700 bg-gray-50 rounded-md p-3"></div>
+
+                <!-- Expert Options Panel -->
+                <div id="panel-expert">
+                    <p style="font-size: 13px; margin-bottom: 16px; opacity: 0.8;">Select individual entities to
+                        process.</p>
+                    <div class="expert-entities-grid" id="expert-entities"></div>
+                </div>
+
+                <button id="processBtn" class="process-btn" disabled>Process File</button>
+
+                <div class="progress" id="progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-text" id="progressText"></div>
                 </div>
             </div>
-
-            <div id="panel-expert" class="space-y-4 hidden">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="expert-entities"></div>
-                <div class="text-xs text-gray-500">Adjust detection thresholds where applicable (0-1). Leave blank to
-                    use defaults.</div>
-            </div>
-
-            <div class="mt-4">
-                <button
-                    class="w-full py-3 font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                    id="processBtn">Process File</button>
-            </div>
-
-            <div class="mt-4">
-                <div class="w-full bg-gray-200 rounded-full h-2.5">
-                    <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%;"></div>
-                </div>
-                <div class="mt-2 text-xs text-gray-600" id="progressText">Idle</div>
-            </div>
-
-            <div id="report-section" class="mt-6 hidden">
-                <h3 class="text-lg font-medium text-gray-800 border-b pb-2">Entity Masking Report</h3>
-                <div id="report-content" class="mt-3"></div>
-            </div>
-
-            <div id="status"
-                class="mt-4 rounded-md border border-blue-200 bg-blue-50 text-blue-800 p-3 text-sm whitespace-pre-wrap">
-                Ready to process files. Select an input file, then click "Process File".</div>
         </div>
     </div>
 
     <script>
-        const inputPathEl = document.getElementById('inputPath');
-        const selectInputBtn = document.getElementById('selectInputBtn');
+        // UI elements (defined early for use in init)
+        const dropZone = document.getElementById('dropZone');
+        const hiddenFileInput = document.getElementById('hiddenFileInput');
         const processBtn = document.getElementById('processBtn');
-        const statusEl = document.getElementById('status');
-        const reportSection = document.getElementById('report-section');
-        const reportContent = document.getElementById('report-content');
-        const progressBar = document.getElementById('progressBar');
+        const status = document.getElementById('status');
+        const progress = document.getElementById('progress');
+        const progressFill = document.getElementById('progressFill');
         const progressText = document.getElementById('progressText');
-        const tabSecurity = document.getElementById('tab-security');
-        const tabExpert = document.getElementById('tab-expert');
-        const panelSecurity = document.getElementById('panel-security');
-        const panelExpert = document.getElementById('panel-expert');
-        const levelEntitiesEl = document.getElementById('level-entities');
-        const expertEntitiesEl = document.getElementById('expert-entities');
+        const levelEntities = document.getElementById('level-entities');
 
+        // Entity catalog
         const ENTITY_CATALOG = [
             { key: 'person_name', label: 'Person Name' },
-            { key: 'email', label: 'Email' },
-            { key: 'phone', label: 'Phone' },
             { key: 'address', label: 'Address' },
+            { key: 'phone', label: 'Phone' },
+            { key: 'email', label: 'Email' },
             { key: 'postal_code', label: 'Postal Code' },
             { key: 'ssn', label: 'SSN' },
             { key: 'credit_card', label: 'Credit Card' },
             { key: 'bank_account', label: 'Bank Account' },
             { key: 'drivers_license', label: "Driver's License" },
             { key: 'credentials', label: 'Credentials/Secrets' },
-            { key: 'health', label: 'Health/PHI' },
+            { key: 'health', label: 'Health Information' },
             { key: 'metadata', label: 'Metadata/IDs' }
         ];
 
+        // Security levels
         const SECURITY_LEVELS = {
             basic: ['person_name', 'address', 'phone', 'email'],
             balanced: ['person_name', 'address', 'phone', 'email', 'ssn', 'credit_card', 'bank_account', 'drivers_license'],
             strict: ENTITY_CATALOG.map(e => e.key)
         };
 
-        let currentTab = 'security';
+        let selectedFilePath = '';
+        let fileItemElement = null;
         let currentLevel = 'basic';
+        let currentTab = 'security';
+        let expertSelectedEntities = ENTITY_CATALOG.map(e => e.key); // Default to all selected
 
-        function updateStatus(message, type = 'info') {
-            statusEl.textContent = message;
-            statusEl.className = `status ${type}`;
+        // Platform and theme setup
+        function init() {
+            if (window.electronAPI) {
+                // Get platform
+                window.electronAPI.getPlatform().then(platform => {
+                    document.body.setAttribute('data-platform', platform);
+                }).catch(() => {
+                    document.body.setAttribute('data-platform', 'darwin');
+                });
+
+                // Get theme
+                window.electronAPI.getTheme().then(isDark => {
+                    document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+                }).catch(() => {
+                    document.body.setAttribute('data-theme', 'light');
+                });
+
+                // Theme change listener
+                window.electronAPI.onThemeChanged((isDark) => {
+                    document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+                });
+
+                // Menu actions
+                window.electronAPI.onMenuAction((action) => {
+                    if (action === 'open-file') {
+                        hiddenFileInput.click();
+                    } else if (action === 'process-document') {
+                        processBtn.click();
+                    }
+                });
+            }
         }
 
+        // Update status
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+
+        // Update progress
+        function setProgress(percent, text) {
+            progressFill.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+            progressText.textContent = text;
+            progress.style.display = 'block';
+        }
+
+        // Render level entities
         function renderLevelEntities() {
             const entities = SECURITY_LEVELS[currentLevel].map(key => {
                 const info = ENTITY_CATALOG.find(e => e.key === key);
                 return info ? info.label : key;
             });
-            levelEntitiesEl.textContent = entities.join(', ');
+            levelEntities.textContent = entities.join(', ');
         }
 
+        // Render expert entities
         function renderExpertEntities() {
-            expertEntitiesEl.innerHTML = ENTITY_CATALOG.map(e => (
-                `<label class="flex items-center gap-2 border rounded-md px-3 py-2">
-                    <input type="checkbox" class="expert-entity" data-entity="${e.key}" checked>
-                    <span class="flex-1">${e.label}</span>
-                    <span class="text-xs text-gray-500">threshold</span>
-                    <input type="number" min="0" max="1" step="0.05" class="w-20 border rounded px-2 py-1 text-xs expert-threshold" data-entity="${e.key}" placeholder="default">
-                </label>`
-            )).join('');
+            const expertEntitiesEl = document.getElementById('expert-entities');
+            expertEntitiesEl.innerHTML = ENTITY_CATALOG.map(entity => `
+                <div class="expert-entity-item" data-entity="${entity.key}">
+                    <input type="checkbox" class="expert-checkbox" data-entity="${entity.key}" 
+                           ${expertSelectedEntities.includes(entity.key) ? 'checked' : ''}>
+                    <span class="expert-entity-label">${entity.label}</span>
+                </div>
+            `).join('');
         }
 
-        function setActiveTab(tab) {
-            currentTab = tab;
-            const activeClasses = 'py-2 px-3 border-b-2 border-blue-600 text-blue-600 font-medium';
-            const inactiveClasses = 'py-2 px-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700';
-            if (tab === 'security') {
-                tabSecurity.className = activeClasses;
-                tabExpert.className = inactiveClasses;
-                panelSecurity.classList.remove('hidden');
-                panelExpert.classList.add('hidden');
+        // Handle file selection
+        function handleFileSelect(path) {
+            selectedFilePath = path;
+
+            // Create file item element if it doesn't exist
+            if (!fileItemElement) {
+                fileItemElement = document.createElement('div');
+                fileItemElement.className = 'file-item';
+
+                const fileName = document.createElement('span');
+                fileName.className = 'file-item-name';
+                fileName.textContent = path;
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'file-item-remove';
+                removeBtn.innerHTML = '✕';
+                removeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    clearFileSelection();
+                });
+
+                fileItemElement.appendChild(fileName);
+                fileItemElement.appendChild(removeBtn);
+                dropZone.appendChild(fileItemElement);
             } else {
-                tabSecurity.className = inactiveClasses;
-                tabExpert.className = activeClasses;
-                panelSecurity.classList.add('hidden');
-                panelExpert.classList.remove('hidden');
+                // Update existing file item
+                fileItemElement.querySelector('.file-item-name').textContent = path;
             }
+
+            // Hide default content and show file item
+            dropZone.classList.add('has-file');
+            dropZone.style.cursor = 'default';
+            processBtn.disabled = false;
+            showStatus('Ready to process', 'info');
         }
 
-        tabSecurity.addEventListener('click', () => setActiveTab('security'));
-        tabExpert.addEventListener('click', () => setActiveTab('expert'));
+        // Remove file selection
+        function clearFileSelection() {
+            selectedFilePath = '';
 
-        document.querySelectorAll('input[name="securityLevel"]').forEach(r => {
-            r.addEventListener('change', () => {
-                currentLevel = r.value;
+            // Remove file item and show default content
+            if (fileItemElement) {
+                fileItemElement.remove();
+                fileItemElement = null;
+            }
+
+            dropZone.classList.remove('has-file');
+            dropZone.style.cursor = 'pointer';
+            hiddenFileInput.value = '';
+            processBtn.disabled = true;
+            showStatus('Select a file to begin', 'info');
+        }
+
+        // Click to select file (only when no file is selected)
+        dropZone.addEventListener('click', () => {
+            if (!selectedFilePath) {
+                hiddenFileInput.click();
+            }
+        });
+
+        // Handle hidden file input change
+        hiddenFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const ext = file.name.toLowerCase().split('.').pop();
+                if (ext !== 'txt' && ext !== 'pdf') {
+                    showStatus('Please select a .txt or .pdf file', 'error');
+                    return;
+                }
+                handleFileSelect(file.path || file.name);
+            }
+        });
+
+        // Drag and drop handlers
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                const ext = file.name.toLowerCase().split('.').pop();
+                if (ext !== 'txt' && ext !== 'pdf') {
+                    showStatus('Please select a .txt or .pdf file', 'error');
+                    return;
+                }
+                handleFileSelect(file.path || file.name);
+            }
+        });
+
+        // Policy card selection
+        document.querySelectorAll('.policy-card').forEach(card => {
+            card.addEventListener('click', () => {
+                // Update radio button
+                const radio = card.querySelector('.policy-radio');
+                radio.checked = true;
+
+                // Update current level
+                currentLevel = radio.value;
+
+                // Update card appearance
+                document.querySelectorAll('.policy-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+
+                // Update entities list
                 renderLevelEntities();
             });
         });
 
+        // Tab switching
+        document.getElementById('tab-security').addEventListener('click', () => {
+            currentTab = 'security';
+            document.getElementById('tab-security').classList.add('active');
+            document.getElementById('tab-expert').classList.remove('active');
+            document.getElementById('panel-security').style.display = 'block';
+            document.getElementById('panel-expert').style.display = 'none';
+        });
+
+        document.getElementById('tab-expert').addEventListener('click', () => {
+            currentTab = 'expert';
+            document.getElementById('tab-expert').classList.add('active');
+            document.getElementById('tab-security').classList.remove('active');
+            document.getElementById('panel-expert').style.display = 'block';
+            document.getElementById('panel-security').style.display = 'none';
+        });
+
+        // Expert entity checkbox changes (delegated event listener)
+        document.addEventListener('change', (e) => {
+            if (e.target.classList.contains('expert-checkbox')) {
+                const entityKey = e.target.dataset.entity;
+                if (e.target.checked) {
+                    if (!expertSelectedEntities.includes(entityKey)) {
+                        expertSelectedEntities.push(entityKey);
+                    }
+                } else {
+                    expertSelectedEntities = expertSelectedEntities.filter(key => key !== entityKey);
+                }
+            }
+        });
+
+        // Initialize entities display
         renderLevelEntities();
         renderExpertEntities();
 
-        let isDownloadReady = false;
-        let tempOutputPath = null;
-
-        selectInputBtn.addEventListener('click', async () => {
-            try {
-                const filePath = await window.electronAPI.selectInputFile();
-                if (filePath) {
-                    inputPathEl.value = filePath;
-                    updateStatus(`Selected input file: ${filePath}`, 'info');
-                }
-            } catch (error) {
-                updateStatus(`Error selecting input file: ${error.message}`, 'error');
-            }
-        });
-
+        // Process file
         processBtn.addEventListener('click', async () => {
-            // If a processed file is ready, clicking will trigger download/save
-            if (isDownloadReady && tempOutputPath) {
-                try {
-                    const savePath = await window.electronAPI.selectOutputFile();
-                    if (savePath) {
-                        const saveResult = await window.electronAPI.copyFile(tempOutputPath, savePath, true);
-                        if (saveResult.status === 'success') {
-                            updateStatus(`[SUCCESS] File saved to: ${saveResult.dest}`, 'success');
-                            // Reset button back to normal state
-                            isDownloadReady = false;
-                            tempOutputPath = null;
-                            processBtn.textContent = 'Process File';
-                            processBtn.classList.remove('download-ready');
-                        } else {
-                            updateStatus(`[ERROR] Failed to save file: ${saveResult.message || 'Unknown error'}`, 'error');
-                        }
-                    } else {
-                        updateStatus('[WARNING] Save cancelled. Click "Save Now" to try again.', 'info');
-                    }
-                } catch (error) {
-                    updateStatus(`[ERROR] Unexpected error during save: ${error.message}`, 'error');
-                }
+            if (!selectedFilePath) {
+                showStatus('Please select a file', 'error');
                 return;
             }
 
-            const inputPath = inputPathEl.value.trim();
-
-            if (!inputPath) {
-                updateStatus('Please select an input file.', 'error');
-                return;
-            }
-
-            // Prepare button for processing state
-            processBtn.classList.remove('download-ready');
             processBtn.disabled = true;
-            processBtn.textContent = 'Processing...';
-            updateStatus('Processing file... Please wait.', 'info');
-            setProgress(10, 'Starting...');
+            showStatus('Processing...', 'info');
+            setProgress(10, 'Starting');
 
             try {
-                const policy = buildPolicy();
-                setProgress(25, 'Policy prepared');
-                const result = await window.electronAPI.processDocument({ inputPath, policy });
+                const policy = {
+                    entities: currentTab === 'expert'
+                        ? expertSelectedEntities.slice()
+                        : SECURITY_LEVELS[currentLevel].slice()
+                };
+
+                setProgress(30, 'Processing');
+                const result = await window.electronAPI.processDocument({ inputPath: selectedFilePath, policy });
 
                 if (result.status === 'success') {
-                    tempOutputPath = result.output;
-                    isDownloadReady = true;
-                    let successMsg = `[SUCCESS] ${result.message}\nClick "Save Now" to save the processed file.`;
-                    if (result.log_file) {
-                        successMsg += `\n\n[INFO] Debug log: ${result.log_file}`;
-                    }
-                    updateStatus(successMsg, 'success');
-                    setProgress(100, 'Completed');
-                    processBtn.textContent = 'Save Now';
-                    processBtn.classList.add('download-ready');
-                    processBtn.disabled = false;
+                    setProgress(100, 'Complete');
+                    showStatus(`Success! Output: ${result.output}`, 'success');
 
-                    // Automatically fetch and display entity mapping report
-                    if (result.session_id) {
-                        displayEntityMappingReport(result.session_id);
-                    }
+                    setTimeout(() => {
+                        progress.style.display = 'none';
+                        clearFileSelection();
+                        showStatus('Select a file to begin', 'info');
+                    }, 3000);
                 } else {
-                    let errorMsg = `[ERROR] Error: ${result.message}\n${result.error || ''}`;
-                    if (result.log_file) {
-                        errorMsg += `\n\n📋 Debug log: ${result.log_file}`;
-                    }
-                    updateStatus(errorMsg, 'error');
-                    setProgress(0, 'Idle');
+                    showStatus(`Error: ${result.message}`, 'error');
+                    progress.style.display = 'none';
                     processBtn.disabled = false;
-                    processBtn.textContent = 'Process File';
                 }
             } catch (error) {
-                updateStatus(`[ERROR] Unexpected error: ${error.message}`, 'error');
-                setProgress(0, 'Idle');
+                showStatus(`Error: ${error.message}`, 'error');
+                progress.style.display = 'none';
                 processBtn.disabled = false;
-                processBtn.textContent = 'Process File';
             }
         });
 
-        function buildPolicy() {
-            if (currentTab === 'security') {
-                return { entities: SECURITY_LEVELS[currentLevel] };
-            }
-            const selected = Array.from(document.querySelectorAll('.expert-entity'))
-                .filter(el => el.checked)
-                .map(el => el.getAttribute('data-entity'));
-            return { entities: selected };
-        }
-
-        function setProgress(percent, text) {
-            progressBar.style.width = `${Math.max(0, Math.min(100, percent))}%`;
-            progressText.textContent = text;
-        }
-
-        // Function to display entity mapping report automatically after processing
-        async function displayEntityMappingReport(sessionId) {
-            try {
-                reportSection.classList.remove('hidden');
-                reportContent.innerHTML = '<p class="text-sm text-gray-600">Loading entity mapping report...</p>';
-
-                const reportResult = await window.electronAPI.getEntityMappingReport({ sessionId });
-
-                if (reportResult.status === 'success') {
-                    const report = reportResult;
-                    let reportHtml = '';
-
-                    // Statistics section
-                    reportHtml += '<div class="grid grid-cols-1 sm:grid-cols-3 gap-2">';
-                    reportHtml += `<div class="p-3 bg-blue-50 rounded-md text-center"><div class="text-xl font-bold text-blue-700">${report.total_entities}</div><div class="text-xs text-blue-800">Total Entities</div></div>`;
-                    reportHtml += `<div class="p-3 bg-blue-50 rounded-md text-center"><div class="text-xl font-bold text-blue-700">${Object.keys(report.entities_by_type).length}</div><div class="text-xs text-blue-800">Entity Types</div></div>`;
-                    if (report.document_path) {
-                        const docName = report.document_path.split(/[/\\\\]/).pop();
-                        reportHtml += `<div class="p-3 bg-blue-50 rounded-md text-center"><div class="text-sm font-semibold text-blue-700 break-words">${docName}</div><div class="text-xs text-blue-800">Document</div></div>`;
-                    }
-                    reportHtml += '</div>';
-
-                    // Entities by type
-                    if (Object.keys(report.entities_by_type).length > 0) {
-                        reportHtml += '<h4 class="mt-4 mb-2 text-gray-800 font-medium">Entities by Type</h4>';
-                        for (const [entityType, entities] of Object.entries(report.entities_by_type)) {
-                            reportHtml += `<div class="mb-4 p-3 bg-gray-50 border-l-4 border-blue-600 rounded">`;
-                            reportHtml += `<h4 class="m-0 mb-2 text-blue-700 font-semibold">${entityType} (${entities.length})</h4>`;
-
-                            for (const entity of entities) {
-                                reportHtml += `<div class="mb-2 p-2 bg-white border rounded">`;
-                                reportHtml += `<div class="font-semibold text-red-700">Original: ${escapeHtml(entity.original_text)}</div>`;
-                                reportHtml += `<div class="text-blue-700">Masked: ${escapeHtml(entity.masked_text)}</div>`;
-                                reportHtml += `<div class="text-xs text-gray-600 mt-1">`;
-                                reportHtml += `Confidence: ${(entity.confidence * 100).toFixed(1)}%`;
-                                if (entity.policy_applied && Object.keys(entity.policy_applied).length > 0) {
-                                    reportHtml += ` | Action: ${entity.policy_applied.action || 'N/A'}`;
-                                }
-                                reportHtml += `</div>`;
-                                reportHtml += `</div>`;
-                            }
-                            reportHtml += `</div>`;
-                        }
-                    } else {
-                        reportHtml += '<p class="text-sm text-gray-600">No entities were masked in this session.</p>';
-                    }
-
-                    // Session metadata
-                    reportHtml += '<h4 class="mt-4 mb-2 text-gray-800 font-medium">Session Information</h4>';
-                    reportHtml += '<div class="text-xs text-gray-600 mt-2">';
-                    reportHtml += `<p><strong>Session ID:</strong> ${report.session_id}</p>`;
-                    if (report.created_at) {
-                        reportHtml += `<p><strong>Created:</strong> ${new Date(report.created_at).toLocaleString()}</p>`;
-                    }
-                    reportHtml += '</div>';
-
-                    reportContent.innerHTML = reportHtml;
-                } else {
-                    reportContent.innerHTML = `<p style="color: #d32f2f;">Error loading report: ${reportResult.message || 'Unknown error'}</p>`;
-                }
-            } catch (error) {
-                reportContent.innerHTML = `<p style="color: #d32f2f;">Error displaying report: ${error.message}</p>`;
-            }
-        }
-
-        // Helper function to escape HTML
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
+        // Initialize when the DOM is ready
+        window.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 
