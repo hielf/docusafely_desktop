@@ -3,6 +3,16 @@
 // Increase timeout for all tests
 jest.setTimeout(30000);
 
+// Mock process.getSystemVersion for custom-electron-titlebar compatibility
+// This is an Electron-specific API that needs to be mocked in Jest tests
+if (!process.getSystemVersion) {
+  process.getSystemVersion = jest.fn(() => {
+    // Return a mock version string that works for testing
+    // macOS 10.x format by default
+    return process.platform === 'darwin' ? '10.15.7' : '10.0';
+  });
+}
+
 // Global test utilities
 global.testUtils = {
   // Helper to create test directories
