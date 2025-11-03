@@ -358,6 +358,7 @@ ipcMain.handle('process-document', async (event, { inputPath, outputPath, policy
       if (!fs.existsSync(compiledPath)) return null;
       try {
         // Pass policy via environment variable
+        // Enable default templates for pseudonymization (like the integration tests)
         const env = Object.assign({}, process.env, {
           DOCMASK_ENTITY_POLICY: (() => {
             try {
@@ -365,7 +366,8 @@ ipcMain.handle('process-document', async (event, { inputPath, outputPath, policy
             } catch (_e) {
               return '{}';
             }
-          })()
+          })(),
+          DOCMASK_USE_DEFAULT_TEMPLATES: 'true'
         });
         return spawn(compiledPath, [inputPath, outputPath], { env });
       } catch (_e) {
@@ -375,9 +377,20 @@ ipcMain.handle('process-document', async (event, { inputPath, outputPath, policy
 
     const trySpawnPython = () => {
       const pythonCandidates = isWindows ? ['python', 'python3'] : ['python3', 'python'];
+      // Create env with policy and default templates enabled
+      const pythonEnv = Object.assign({}, process.env, {
+        DOCMASK_ENTITY_POLICY: (() => {
+          try {
+            return JSON.stringify(policy || {});
+          } catch (_e) {
+            return '{}';
+          }
+        })(),
+        DOCMASK_USE_DEFAULT_TEMPLATES: 'true'
+      });
       for (const cmd of pythonCandidates) {
         try {
-          return spawn(cmd, [scriptPath, inputPath, outputPath]);
+          return spawn(cmd, [scriptPath, inputPath, outputPath], { env: pythonEnv });
         } catch (_e) {
           // try next candidate
         }
@@ -479,7 +492,8 @@ ipcMain.handle('process-document', async (event, { inputPath, outputPath, policy
         } catch (_e) {
           return '{}';
         }
-      })()
+      })(),
+      DOCMASK_USE_DEFAULT_TEMPLATES: 'true'
     });
     const pythonCandidates = process.platform === 'win32' ? ['python', 'python3'] : ['python3', 'python'];
     let pythonProc = null;

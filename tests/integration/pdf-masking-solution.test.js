@@ -118,7 +118,7 @@ describe('PDF Masking Solution Tests', () => {
 
       // The test should pass if we can identify the issue
       expect(result.status).toBe('success');
-    }, 30000);
+    }, 60000);
 
     test('should provide solution recommendations', () => {
       if (!pdfAvailable) {

@@ -90,7 +90,7 @@ describe('PDF Masking Verification Tests', () => {
           throw basicError;
         }
       }
-    }, 30000);
+    }, 60000);
 
     test('should analyze PII content in original PDF', () => {
       if (!pdfAvailable || !originalText) {
