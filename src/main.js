@@ -25,9 +25,9 @@ function createWindow() {
   // Base window configuration
   const windowConfig = {
     width: 600,
-    height: 400,
-    minWidth: 550,
-    minHeight: 350,
+    height: 650,
+    minWidth: 600,
+    minHeight: 650,
     backgroundColor: isMac ? '#00000000' : (nativeTheme.shouldUseDarkColors ? '#1e1e1e' : '#ffffff'),
     webPreferences: {
       nodeIntegration: false,
@@ -57,6 +57,17 @@ function createWindow() {
   }
 
   mainWindow = new BrowserWindow(windowConfig);
+
+  // Explicitly enforce minimum size constraints
+  mainWindow.setMinimumSize(600, 650);
+
+  // Prevent window from being resized below minimum size
+  mainWindow.on('resize', () => {
+    const [width, height] = mainWindow.getSize();
+    if (width < 600 || height < 650) {
+      mainWindow.setSize(Math.max(600, width), Math.max(650, height));
+    }
+  });
 
   // Attach titlebar to window
   attachTitlebarToWindow(mainWindow);
@@ -309,14 +320,21 @@ ipcMain.handle('select-input-file', async () => {
   return null;
 });
 
-ipcMain.handle('select-output-file', async () => {
-  const result = await dialog.showSaveDialog(mainWindow, {
+ipcMain.handle('select-output-file', async (_event, { defaultFilename } = {}) => {
+  const dialogOptions = {
     filters: [
       { name: 'PDF Files', extensions: ['pdf'] },
       { name: 'Text/CSV Files', extensions: ['txt', 'csv'] },
       { name: 'All Files', extensions: ['*'] }
     ]
-  });
+  };
+
+  // Set default filename if provided
+  if (defaultFilename) {
+    dialogOptions.defaultPath = defaultFilename;
+  }
+
+  const result = await dialog.showSaveDialog(mainWindow, dialogOptions);
 
   if (!result.canceled) {
     return result.filePath;
@@ -554,6 +572,34 @@ ipcMain.handle('copy-file', async (_event, { src, dest, overwrite }) => {
       return { status: 'error', message: String(err) };
     }
     return { status: 'success', dest };
+  } catch (error) {
+    return { status: 'error', message: String(error) };
+  }
+});
+
+// Handle dropped file from drag-and-drop by saving to temp directory
+ipcMain.handle('save-dropped-file', async (_event, { fileName, fileData }) => {
+  try {
+    if (!fileName || !fileData) {
+      return { status: 'error', message: 'fileName and fileData are required' };
+    }
+
+    // Create temp directory if it doesn't exist
+    const tempDir = app.getPath('temp');
+    const tempFileDir = path.join(tempDir, 'docusafely_dropped');
+    await fs.promises.mkdir(tempFileDir, { recursive: true });
+
+    // Generate unique filename to avoid conflicts
+    const ext = path.extname(fileName);
+    const baseName = path.basename(fileName, ext);
+    const uniqueName = `${baseName}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+    const tempFilePath = path.join(tempFileDir, uniqueName);
+
+    // Convert ArrayBuffer to Buffer and write file
+    const buffer = Buffer.from(fileData);
+    await fs.promises.writeFile(tempFilePath, buffer);
+
+    return { status: 'success', filePath: tempFilePath };
   } catch (error) {
     return { status: 'error', message: String(error) };
   }

@@ -378,36 +378,135 @@
             color: #8A8A8A;
         }
 
-        /* Progress */
-        .progress {
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .progress-bar {
+        /* Processing Overlay */
+        .processing-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: 8px;
-            background: #e5e5e5;
-            border-radius: 4px;
-            overflow: hidden;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            flex-direction: column;
+            gap: 24px;
+            pointer-events: all;
+            cursor: wait;
         }
 
-        body[data-theme="dark"] .progress-bar {
+        .processing-overlay.active {
+            display: flex;
+        }
+
+        .processing-content {
+            background: white;
+            border-radius: 12px;
+            padding: 32px 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            min-width: 320px;
+            text-align: center;
+        }
+
+        body[data-theme="dark"] .processing-content {
+            background: #2b2b2b;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .processing-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        body[data-theme="dark"] .processing-title {
+            color: #fff;
+        }
+
+        .processing-progress-container {
+            width: 100%;
+            height: 24px;
+            background: #e5e5e5;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        body[data-theme="dark"] .processing-progress-container {
             background: #4b4b4b;
         }
 
-        .progress-fill {
+        .processing-progress-bar {
             height: 100%;
-            background: #007acc;
             width: 0%;
-            transition: width 0.3s;
+            background: linear-gradient(90deg,
+                    #007acc 0%,
+                    #007acc 50%,
+                    #0099ff 50%,
+                    #0099ff 100%);
+            background-size: 200% 100%;
+            border-radius: 12px;
+            transition: width 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
 
-        .progress-text {
-            margin-top: 8px;
+        /* Zebra/striped animation */
+        .processing-progress-bar.animating {
+            animation: zebra-stripe 1.5s linear infinite;
+        }
+
+        @keyframes zebra-stripe {
+            0% {
+                background-position: 0% 0%;
+            }
+
+            100% {
+                background-position: 200% 0%;
+            }
+        }
+
+        /* Zebra stripes overlay - more visible animation */
+        .processing-progress-bar.animating::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(45deg,
+                    rgba(255, 255, 255, 0) 0px,
+                    rgba(255, 255, 255, 0) 8px,
+                    rgba(255, 255, 255, 0.25) 8px,
+                    rgba(255, 255, 255, 0.25) 16px);
+            background-size: 32px 32px;
+            animation: stripe-move 0.6s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes stripe-move {
+            0% {
+                background-position: 0 0;
+            }
+
+            100% {
+                background-position: 32px 32px;
+            }
+        }
+
+        .processing-status-text {
             font-size: 13px;
-            opacity: 0.7;
-            text-align: center;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        body[data-theme="dark"] .processing-status-text {
+            color: #aaa;
         }
 
         /* Status messages */
@@ -733,14 +832,18 @@
                 </div>
 
                 <button id="processBtn" class="process-btn" disabled>Process File</button>
-
-                <div class="progress" id="progress">
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressFill"></div>
-                    </div>
-                    <div class="progress-text" id="progressText"></div>
-                </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Processing Overlay -->
+    <div class="processing-overlay" id="processingOverlay">
+        <div class="processing-content">
+            <div class="processing-title">Processing Document</div>
+            <div class="processing-progress-container">
+                <div class="processing-progress-bar" id="processingProgressBar"></div>
+            </div>
+            <div class="processing-status-text" id="processingStatusText">Initializing...</div>
         </div>
     </div>
 
@@ -750,9 +853,9 @@
         const hiddenFileInput = document.getElementById('hiddenFileInput');
         const processBtn = document.getElementById('processBtn');
         const status = document.getElementById('status');
-        const progress = document.getElementById('progress');
-        const progressFill = document.getElementById('progressFill');
-        const progressText = document.getElementById('progressText');
+        const processingOverlay = document.getElementById('processingOverlay');
+        const processingProgressBar = document.getElementById('processingProgressBar');
+        const processingStatusText = document.getElementById('processingStatusText');
         const levelEntities = document.getElementById('level-entities');
 
         // Entity catalog
@@ -783,6 +886,8 @@
         let currentLevel = 'basic';
         let currentTab = 'security';
         let expertSelectedEntities = ENTITY_CATALOG.map(e => e.key); // Default to all selected
+        let processedOutputPath = ''; // Store the processed file path
+        let isReadyToSave = false; // Track if file is ready to save
 
         // Platform and theme setup
         function init() {
@@ -807,9 +912,21 @@
                 });
 
                 // Menu actions
-                window.electronAPI.onMenuAction((action) => {
+                window.electronAPI.onMenuAction(async (action) => {
                     if (action === 'open-file') {
-                        hiddenFileInput.click();
+                        try {
+                            const filePath = await window.electronAPI.selectInputFile();
+                            if (filePath) {
+                                const ext = filePath.toLowerCase().split('.').pop();
+                                if (ext !== 'txt' && ext !== 'pdf') {
+                                    showStatus('Please select a .txt or .pdf file', 'error');
+                                    return;
+                                }
+                                handleFileSelect(filePath);
+                            }
+                        } catch (error) {
+                            showStatus(`Error selecting file: ${error.message}`, 'error');
+                        }
                     } else if (action === 'process-document') {
                         processBtn.click();
                     }
@@ -823,11 +940,25 @@
             status.className = `status ${type}`;
         }
 
-        // Update progress
-        function setProgress(percent, text) {
-            progressFill.style.width = `${Math.max(0, Math.min(100, percent))}%`;
-            progressText.textContent = text;
-            progress.style.display = 'block';
+        // Show processing overlay with progress
+        function showProcessingOverlay(percent, text) {
+            processingProgressBar.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+            processingStatusText.textContent = text || 'Processing...';
+
+            if (percent > 0 && percent < 100) {
+                processingProgressBar.classList.add('animating');
+            } else {
+                processingProgressBar.classList.remove('animating');
+            }
+
+            processingOverlay.classList.add('active');
+        }
+
+        // Hide processing overlay
+        function hideProcessingOverlay() {
+            processingOverlay.classList.remove('active');
+            processingProgressBar.classList.remove('animating');
+            processingProgressBar.style.width = '0%';
         }
 
         // Render level entities
@@ -855,14 +986,22 @@
         function handleFileSelect(path) {
             selectedFilePath = path;
 
+            // Reset processed state when new file is selected
+            processedOutputPath = '';
+            isReadyToSave = false;
+            processBtn.textContent = 'Process File';
+
+            // Extract just the filename from the path
+            const fileName = path.split(/[\\/]/).pop();
+
             // Create file item element if it doesn't exist
             if (!fileItemElement) {
                 fileItemElement = document.createElement('div');
                 fileItemElement.className = 'file-item';
 
-                const fileName = document.createElement('span');
-                fileName.className = 'file-item-name';
-                fileName.textContent = path;
+                const fileNameEl = document.createElement('span');
+                fileNameEl.className = 'file-item-name';
+                fileNameEl.textContent = fileName;
 
                 const removeBtn = document.createElement('button');
                 removeBtn.className = 'file-item-remove';
@@ -872,12 +1011,12 @@
                     clearFileSelection();
                 });
 
-                fileItemElement.appendChild(fileName);
+                fileItemElement.appendChild(fileNameEl);
                 fileItemElement.appendChild(removeBtn);
                 dropZone.appendChild(fileItemElement);
             } else {
                 // Update existing file item
-                fileItemElement.querySelector('.file-item-name').textContent = path;
+                fileItemElement.querySelector('.file-item-name').textContent = fileName;
             }
 
             // Hide default content and show file item
@@ -890,6 +1029,8 @@
         // Remove file selection
         function clearFileSelection() {
             selectedFilePath = '';
+            processedOutputPath = '';
+            isReadyToSave = false;
 
             // Remove file item and show default content
             if (fileItemElement) {
@@ -901,17 +1042,30 @@
             dropZone.style.cursor = 'pointer';
             hiddenFileInput.value = '';
             processBtn.disabled = true;
+            processBtn.textContent = 'Process File';
             showStatus('Select a file to begin', 'info');
         }
 
         // Click to select file (only when no file is selected)
-        dropZone.addEventListener('click', () => {
+        dropZone.addEventListener('click', async () => {
             if (!selectedFilePath) {
-                hiddenFileInput.click();
+                try {
+                    const filePath = await window.electronAPI.selectInputFile();
+                    if (filePath) {
+                        const ext = filePath.toLowerCase().split('.').pop();
+                        if (ext !== 'txt' && ext !== 'pdf') {
+                            showStatus('Please select a .txt or .pdf file', 'error');
+                            return;
+                        }
+                        handleFileSelect(filePath);
+                    }
+                } catch (error) {
+                    showStatus(`Error selecting file: ${error.message}`, 'error');
+                }
             }
         });
 
-        // Handle hidden file input change
+        // Handle hidden file input change (fallback - HTML file input doesn't provide full paths in Electron)
         hiddenFileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -920,7 +1074,15 @@
                     showStatus('Please select a .txt or .pdf file', 'error');
                     return;
                 }
-                handleFileSelect(file.path || file.name);
+                // HTML file input doesn't provide full paths in Electron with context isolation
+                // Try to use file.path if available (works in some Electron contexts)
+                if (file.path) {
+                    handleFileSelect(file.path);
+                } else {
+                    // If no path available, show error and suggest using the file picker
+                    showStatus('Please use the "Click to select" button or File > Open File menu to select a file.', 'error');
+                    hiddenFileInput.value = ''; // Clear the input
+                }
             }
         });
 
@@ -946,7 +1108,26 @@
                     showStatus('Please select a .txt or .pdf file', 'error');
                     return;
                 }
-                handleFileSelect(file.path || file.name);
+
+                // Try to get path directly (works in some Electron configurations)
+                if (file.path) {
+                    handleFileSelect(file.path);
+                } else {
+                    // Fallback: read file and save to temp directory via IPC
+                    try {
+                        showStatus('Reading dropped file...', 'info');
+                        const arrayBuffer = await file.arrayBuffer();
+                        const result = await window.electronAPI.saveDroppedFile(file.name, Array.from(new Uint8Array(arrayBuffer)));
+
+                        if (result.status === 'success') {
+                            handleFileSelect(result.filePath);
+                        } else {
+                            showStatus(`Error processing dropped file: ${result.message}`, 'error');
+                        }
+                    } catch (error) {
+                        showStatus(`Error reading dropped file: ${error.message}`, 'error');
+                    }
+                }
             }
         });
 
@@ -1006,14 +1187,54 @@
 
         // Process file
         processBtn.addEventListener('click', async () => {
+            // Handle "Save File" button click
+            if (isReadyToSave) {
+                try {
+                    // Extract original filename and extension
+                    const originalPath = selectedFilePath;
+                    const pathParts = originalPath.split(/[\\/]/);
+                    const originalFileName = pathParts[pathParts.length - 1];
+                    const lastDotIndex = originalFileName.lastIndexOf('.');
+                    const nameWithoutExt = lastDotIndex > 0
+                        ? originalFileName.substring(0, lastDotIndex)
+                        : originalFileName;
+                    const extension = lastDotIndex > 0
+                        ? originalFileName.substring(lastDotIndex)
+                        : '';
+
+                    // Create default filename: original_name_masked.ext
+                    const defaultFilename = `${nameWithoutExt}_masked${extension}`;
+
+                    // Show save dialog with default filename
+                    const savePath = await window.electronAPI.selectOutputFile({ defaultFilename });
+
+                    if (savePath) {
+                        // Copy processed file to user-selected location
+                        const copyResult = await window.electronAPI.copyFile(processedOutputPath, savePath, true);
+
+                        if (copyResult.status === 'success') {
+                            showStatus(`File saved successfully: ${savePath.split(/[\\/]/).pop()}`, 'success');
+                            setTimeout(() => {
+                                clearFileSelection();
+                            }, 2000);
+                        } else {
+                            showStatus(`Error saving file: ${copyResult.message}`, 'error');
+                        }
+                    }
+                } catch (error) {
+                    showStatus(`Error: ${error.message}`, 'error');
+                }
+                return;
+            }
+
+            // Handle "Process File" button click
             if (!selectedFilePath) {
                 showStatus('Please select a file', 'error');
                 return;
             }
 
             processBtn.disabled = true;
-            showStatus('Processing...', 'info');
-            setProgress(10, 'Starting');
+            showProcessingOverlay(10, 'Starting...');
 
             try {
                 const policy = {
@@ -1022,26 +1243,30 @@
                         : SECURITY_LEVELS[currentLevel].slice()
                 };
 
-                setProgress(30, 'Processing');
+                showProcessingOverlay(30, 'Processing document...');
                 const result = await window.electronAPI.processDocument({ inputPath: selectedFilePath, policy });
 
                 if (result.status === 'success') {
-                    setProgress(100, 'Complete');
-                    showStatus(`Success! Output: ${result.output}`, 'success');
+                    showProcessingOverlay(100, 'Complete!');
 
-                    setTimeout(() => {
-                        progress.style.display = 'none';
-                        clearFileSelection();
-                        showStatus('Select a file to begin', 'info');
-                    }, 3000);
+                    // Store the processed output path
+                    processedOutputPath = result.output || result.outputPath || '';
+
+                    // Update button to "Save File"
+                    isReadyToSave = true;
+                    processBtn.textContent = 'Save File';
+                    processBtn.disabled = false;
+
+                    hideProcessingOverlay();
+                    showStatus('Processing complete! Click "Save File" to save the processed document.', 'success');
                 } else {
+                    hideProcessingOverlay();
                     showStatus(`Error: ${result.message}`, 'error');
-                    progress.style.display = 'none';
                     processBtn.disabled = false;
                 }
             } catch (error) {
+                hideProcessingOverlay();
                 showStatus(`Error: ${error.message}`, 'error');
-                progress.style.display = 'none';
                 processBtn.disabled = false;
             }
         });

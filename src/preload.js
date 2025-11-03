@@ -10,10 +10,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getPlatform: () => Promise.resolve(process.platform),
   getTheme: () => ipcRenderer.invoke('get-theme'),
   selectInputFile: () => ipcRenderer.invoke('select-input-file'),
-  selectOutputFile: () => ipcRenderer.invoke('select-output-file'),
+  selectOutputFile: (options) => ipcRenderer.invoke('select-output-file', options),
   processDocument: (data) => ipcRenderer.invoke('process-document', data),
   generateDryRunReport: (data) => ipcRenderer.invoke('generate-dry-run-report', data),
   copyFile: (src, dest, overwrite = false) => ipcRenderer.invoke('copy-file', { src, dest, overwrite }),
+  saveDroppedFile: (fileName, fileData) => ipcRenderer.invoke('save-dropped-file', { fileName, fileData }),
   getEntityMappingReport: (data) => ipcRenderer.invoke('get-entity-mapping-report', data),
   // Window management
   windowMinimize: () => ipcRenderer.send('window-minimize'),
