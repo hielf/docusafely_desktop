@@ -23,11 +23,12 @@ function createWindow() {
   const isLinux = platform === 'linux';
 
   // Base window configuration
+  // Height reduced from 650 to 600 after removing status banner (~50px)
   const windowConfig = {
     width: 600,
-    height: 650,
+    height: 600,
     minWidth: 600,
-    minHeight: 650,
+    minHeight: 600,
     backgroundColor: isMac ? '#00000000' : (nativeTheme.shouldUseDarkColors ? '#1e1e1e' : '#ffffff'),
     webPreferences: {
       nodeIntegration: false,
@@ -59,13 +60,14 @@ function createWindow() {
   mainWindow = new BrowserWindow(windowConfig);
 
   // Explicitly enforce minimum size constraints
-  mainWindow.setMinimumSize(600, 650);
+  // Height reduced from 650 to 600 after removing status banner
+  mainWindow.setMinimumSize(600, 600);
 
   // Prevent window from being resized below minimum size
   mainWindow.on('resize', () => {
     const [width, height] = mainWindow.getSize();
-    if (width < 600 || height < 650) {
-      mainWindow.setSize(Math.max(600, width), Math.max(650, height));
+    if (width < 600 || height < 600) {
+      mainWindow.setSize(Math.max(600, width), Math.max(600, height));
     }
   });
 
@@ -298,6 +300,19 @@ ipcMain.on('window-close', () => {
 
 ipcMain.handle('window-is-maximized', () => {
   return mainWindow && !mainWindow.isDestroyed() ? mainWindow.isMaximized() : false;
+});
+
+ipcMain.handle('window-set-size', (_event, { width, height }) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    // Ensure size is at least minimum
+    const minWidth = 600;
+    const minHeight = 600;
+    const finalWidth = Math.max(minWidth, width || 600);
+    const finalHeight = Math.max(minHeight, height || 600);
+    mainWindow.setSize(finalWidth, finalHeight);
+    return { success: true };
+  }
+  return { success: false };
 });
 
 ipcMain.handle('get-theme', () => {

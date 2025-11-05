@@ -378,6 +378,63 @@
             color: #8A8A8A;
         }
 
+        /* Success state - green button */
+        .process-btn.success {
+            background: #28a745 !important;
+        }
+
+        .process-btn.success:hover:not(:disabled) {
+            background: #218838 !important;
+        }
+
+        body[data-platform="darwin"] .process-btn.success {
+            background: #34C759 !important;
+        }
+
+        body[data-platform="darwin"] .process-btn.success:hover:not(:disabled) {
+            background: #30D158 !important;
+        }
+
+        body[data-platform="darwin"][data-theme="dark"] .process-btn.success {
+            background: #30D158 !important;
+        }
+
+        body[data-platform="darwin"][data-theme="dark"] .process-btn.success:hover:not(:disabled) {
+            background: #34C759 !important;
+        }
+
+        body[data-platform="win32"] .process-btn.success {
+            background: #107C10 !important;
+        }
+
+        body[data-platform="win32"] .process-btn.success:hover:not(:disabled) {
+            background: #0E6E0E !important;
+        }
+
+        body[data-platform="win32"][data-theme="dark"] .process-btn.success {
+            background: #0E6E0E !important;
+        }
+
+        body[data-platform="win32"][data-theme="dark"] .process-btn.success:hover:not(:disabled) {
+            background: #107C10 !important;
+        }
+
+        body[data-platform="linux"] .process-btn.success {
+            background: #28a745 !important;
+        }
+
+        body[data-platform="linux"] .process-btn.success:hover:not(:disabled) {
+            background: #218838 !important;
+        }
+
+        body[data-platform="linux"][data-theme="dark"] .process-btn.success {
+            background: #30D158 !important;
+        }
+
+        body[data-platform="linux"][data-theme="dark"] .process-btn.success:hover:not(:disabled) {
+            background: #34C759 !important;
+        }
+
         /* Processing Overlay */
         .processing-overlay {
             position: fixed;
@@ -509,72 +566,154 @@
             color: #aaa;
         }
 
-        /* Status messages */
-        .status {
-            padding: 14px;
-            border-radius: 8px;
-            font-size: 13px;
+        /* Error Alert Popup */
+        .error-alert-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+            pointer-events: all;
+        }
+
+        .error-alert-overlay.active {
+            display: flex;
+        }
+
+        .error-alert-popup {
+            background: white;
+            border-radius: 12px;
+            padding: 0;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            min-width: 400px;
+            max-width: 500px;
+            overflow: hidden;
+        }
+
+        body[data-theme="dark"] .error-alert-popup {
+            background: #2b2b2b;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        body[data-platform="darwin"] .error-alert-popup {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(30px) saturate(180%);
+            -webkit-backdrop-filter: blur(30px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        body[data-platform="darwin"][data-theme="dark"] .error-alert-popup {
+            background: rgba(30, 30, 30, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .error-alert-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        body[data-theme="dark"] .error-alert-header {
+            border-bottom-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .error-alert-icon {
+            font-size: 24px;
+            color: #dc3545;
+        }
+
+        .error-alert-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        }
+
+        body[data-theme="dark"] .error-alert-title {
+            color: #fff;
+        }
+
+        .error-alert-body {
+            padding: 20px 24px;
+            font-size: 14px;
+            color: #666;
             line-height: 1.5;
         }
 
-        .status.info {
-            background: #e3f2fd;
-            color: #0c5460;
+        body[data-theme="dark"] .error-alert-body {
+            color: #ccc;
         }
 
-        .status.success {
-            background: #d4edda;
-            color: #155724;
+        .error-alert-footer {
+            padding: 16px 24px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
         }
 
-        .status.error {
-            background: #f8d7da;
-            color: #721c24;
+        body[data-theme="dark"] .error-alert-footer {
+            border-top-color: rgba(255, 255, 255, 0.15);
         }
 
-        body[data-theme="dark"] .status.info {
-            background: rgba(33, 150, 243, 0.2);
-            color: #90caf9;
+        .error-alert-ok-btn {
+            padding: 8px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            background: #007acc;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.15s ease;
         }
 
-        body[data-theme="dark"] .status.success {
-            background: rgba(76, 175, 80, 0.2);
-            color: #a5d6a7;
+        .error-alert-ok-btn:hover {
+            background: #005a9e;
         }
 
-        body[data-theme="dark"] .status.error {
-            background: rgba(244, 67, 54, 0.2);
-            color: #ef9a9a;
+        body[data-platform="darwin"] .error-alert-ok-btn {
+            background: #007AFF;
+            border-radius: 5px;
         }
 
-        body[data-platform="darwin"] .status.info {
-            background: rgba(227, 242, 253, 0.6);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+        body[data-platform="darwin"] .error-alert-ok-btn:hover {
+            background: #0051D5;
         }
 
-        body[data-platform="darwin"][data-theme="dark"] .status.info {
-            background: rgba(33, 150, 243, 0.2);
+        body[data-platform="darwin"][data-theme="dark"] .error-alert-ok-btn {
+            background: #0A84FF;
         }
 
-        body[data-platform="darwin"] .status.success {
-            background: rgba(212, 237, 218, 0.6);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+        body[data-platform="darwin"][data-theme="dark"] .error-alert-ok-btn:hover {
+            background: #409CFF;
         }
 
-        body[data-platform="darwin"][data-theme="dark"] .status.success {
-            background: rgba(76, 175, 80, 0.2);
+        body[data-platform="win32"] .error-alert-ok-btn {
+            background: #0078D4;
+            border-radius: 4px;
         }
 
-        body[data-platform="darwin"] .status.error {
-            background: rgba(248, 215, 218, 0.6);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+        body[data-platform="win32"] .error-alert-ok-btn:hover {
+            background: #005A9E;
         }
 
-        body[data-platform="darwin"][data-theme="dark"] .status.error {
-            background: rgba(244, 67, 54, 0.2);
+        body[data-platform="linux"] .error-alert-ok-btn {
+            background: #007ACC;
+            border-radius: 5px;
+        }
+
+        body[data-platform="linux"] .error-alert-ok-btn:hover {
+            background: #005A9E;
         }
 
         /* macOS native button interaction */
@@ -770,8 +909,6 @@
     <div class="app-container">
         <div class="content">
             <div class="panel">
-                <div class="status info" id="status">Select a file to begin</div>
-
                 <!-- Hidden file input -->
                 <input type="file" id="hiddenFileInput" accept=".txt,.pdf" style="display: none;">
 
@@ -847,16 +984,32 @@
         </div>
     </div>
 
+    <!-- Error Alert Popup -->
+    <div class="error-alert-overlay" id="errorAlertOverlay">
+        <div class="error-alert-popup">
+            <div class="error-alert-header">
+                <div class="error-alert-icon">⚠️</div>
+                <div class="error-alert-title">Error</div>
+            </div>
+            <div class="error-alert-body" id="errorAlertMessage"></div>
+            <div class="error-alert-footer">
+                <button class="error-alert-ok-btn" id="errorAlertOkBtn">OK</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // UI elements (defined early for use in init)
         const dropZone = document.getElementById('dropZone');
         const hiddenFileInput = document.getElementById('hiddenFileInput');
         const processBtn = document.getElementById('processBtn');
-        const status = document.getElementById('status');
         const processingOverlay = document.getElementById('processingOverlay');
         const processingProgressBar = document.getElementById('processingProgressBar');
         const processingStatusText = document.getElementById('processingStatusText');
         const levelEntities = document.getElementById('level-entities');
+        const errorAlertOverlay = document.getElementById('errorAlertOverlay');
+        const errorAlertMessage = document.getElementById('errorAlertMessage');
+        const errorAlertOkBtn = document.getElementById('errorAlertOkBtn');
 
         // Entity catalog
         const ENTITY_CATALOG = [
@@ -892,6 +1045,12 @@
         // Platform and theme setup
         function init() {
             if (window.electronAPI) {
+                // Resize window to account for removed status banner
+                // Height reduced from 650px to 600px (~50px removed)
+                window.electronAPI.windowSetSize({ width: 600, height: 600 }).catch(() => {
+                    // Silently fail if resize is not available
+                });
+
                 // Get platform
                 window.electronAPI.getPlatform().then(platform => {
                     document.body.setAttribute('data-platform', platform);
@@ -919,13 +1078,13 @@
                             if (filePath) {
                                 const ext = filePath.toLowerCase().split('.').pop();
                                 if (ext !== 'txt' && ext !== 'pdf') {
-                                    showStatus('Please select a .txt or .pdf file', 'error');
+                                    showErrorAlert('Please select a .txt or .pdf file');
                                     return;
                                 }
                                 handleFileSelect(filePath);
                             }
                         } catch (error) {
-                            showStatus(`Error selecting file: ${error.message}`, 'error');
+                            showErrorAlert(`Error selecting file: ${error.message}`);
                         }
                     } else if (action === 'process-document') {
                         processBtn.click();
@@ -934,11 +1093,26 @@
             }
         }
 
-        // Update status
-        function showStatus(message, type) {
-            status.textContent = message;
-            status.className = `status ${type}`;
+        // Show error alert popup
+        function showErrorAlert(message) {
+            errorAlertMessage.textContent = message;
+            errorAlertOverlay.classList.add('active');
         }
+
+        // Hide error alert popup
+        function hideErrorAlert() {
+            errorAlertOverlay.classList.remove('active');
+        }
+
+        // Close error alert when OK button is clicked
+        errorAlertOkBtn.addEventListener('click', hideErrorAlert);
+
+        // Close error alert when clicking outside the popup
+        errorAlertOverlay.addEventListener('click', (e) => {
+            if (e.target === errorAlertOverlay) {
+                hideErrorAlert();
+            }
+        });
 
         // Show processing overlay with progress
         function showProcessingOverlay(percent, text) {
@@ -990,6 +1164,7 @@
             processedOutputPath = '';
             isReadyToSave = false;
             processBtn.textContent = 'Process File';
+            processBtn.classList.remove('success');
 
             // Extract just the filename from the path
             const fileName = path.split(/[\\/]/).pop();
@@ -1023,7 +1198,6 @@
             dropZone.classList.add('has-file');
             dropZone.style.cursor = 'default';
             processBtn.disabled = false;
-            showStatus('Ready to process', 'info');
         }
 
         // Remove file selection
@@ -1043,7 +1217,7 @@
             hiddenFileInput.value = '';
             processBtn.disabled = true;
             processBtn.textContent = 'Process File';
-            showStatus('Select a file to begin', 'info');
+            processBtn.classList.remove('success');
         }
 
         // Click to select file (only when no file is selected)
@@ -1054,13 +1228,13 @@
                     if (filePath) {
                         const ext = filePath.toLowerCase().split('.').pop();
                         if (ext !== 'txt' && ext !== 'pdf') {
-                            showStatus('Please select a .txt or .pdf file', 'error');
+                            showErrorAlert('Please select a .txt or .pdf file');
                             return;
                         }
                         handleFileSelect(filePath);
                     }
                 } catch (error) {
-                    showStatus(`Error selecting file: ${error.message}`, 'error');
+                    showErrorAlert(`Error selecting file: ${error.message}`);
                 }
             }
         });
@@ -1071,7 +1245,7 @@
             if (file) {
                 const ext = file.name.toLowerCase().split('.').pop();
                 if (ext !== 'txt' && ext !== 'pdf') {
-                    showStatus('Please select a .txt or .pdf file', 'error');
+                    showErrorAlert('Please select a .txt or .pdf file');
                     return;
                 }
                 // HTML file input doesn't provide full paths in Electron with context isolation
@@ -1080,7 +1254,7 @@
                     handleFileSelect(file.path);
                 } else {
                     // If no path available, show error and suggest using the file picker
-                    showStatus('Please use the "Click to select" button or File > Open File menu to select a file.', 'error');
+                    showErrorAlert('Please use the "Click to select" button or File > Open File menu to select a file.');
                     hiddenFileInput.value = ''; // Clear the input
                 }
             }
@@ -1105,7 +1279,7 @@
             if (file) {
                 const ext = file.name.toLowerCase().split('.').pop();
                 if (ext !== 'txt' && ext !== 'pdf') {
-                    showStatus('Please select a .txt or .pdf file', 'error');
+                    showErrorAlert('Please select a .txt or .pdf file');
                     return;
                 }
 
@@ -1115,17 +1289,16 @@
                 } else {
                     // Fallback: read file and save to temp directory via IPC
                     try {
-                        showStatus('Reading dropped file...', 'info');
                         const arrayBuffer = await file.arrayBuffer();
                         const result = await window.electronAPI.saveDroppedFile(file.name, Array.from(new Uint8Array(arrayBuffer)));
 
                         if (result.status === 'success') {
                             handleFileSelect(result.filePath);
                         } else {
-                            showStatus(`Error processing dropped file: ${result.message}`, 'error');
+                            showErrorAlert(`Error processing dropped file: ${result.message}`);
                         }
                     } catch (error) {
-                        showStatus(`Error reading dropped file: ${error.message}`, 'error');
+                        showErrorAlert(`Error reading dropped file: ${error.message}`);
                     }
                 }
             }
@@ -1213,23 +1386,23 @@
                         const copyResult = await window.electronAPI.copyFile(processedOutputPath, savePath, true);
 
                         if (copyResult.status === 'success') {
-                            showStatus(`File saved successfully: ${savePath.split(/[\\/]/).pop()}`, 'success');
+                            processBtn.classList.remove('success');
                             setTimeout(() => {
                                 clearFileSelection();
                             }, 2000);
                         } else {
-                            showStatus(`Error saving file: ${copyResult.message}`, 'error');
+                            showErrorAlert(`Error saving file: ${copyResult.message}`);
                         }
                     }
                 } catch (error) {
-                    showStatus(`Error: ${error.message}`, 'error');
+                    showErrorAlert(`Error: ${error.message}`);
                 }
                 return;
             }
 
             // Handle "Process File" button click
             if (!selectedFilePath) {
-                showStatus('Please select a file', 'error');
+                showErrorAlert('Please select a file');
                 return;
             }
 
@@ -1252,21 +1425,21 @@
                     // Store the processed output path
                     processedOutputPath = result.output || result.outputPath || '';
 
-                    // Update button to "Save File"
+                    // Update button to "Save File" with green success state
                     isReadyToSave = true;
                     processBtn.textContent = 'Save File';
                     processBtn.disabled = false;
+                    processBtn.classList.add('success');
 
                     hideProcessingOverlay();
-                    showStatus('Processing complete! Click "Save File" to save the processed document.', 'success');
                 } else {
                     hideProcessingOverlay();
-                    showStatus(`Error: ${result.message}`, 'error');
+                    showErrorAlert(`Error: ${result.message}`);
                     processBtn.disabled = false;
                 }
             } catch (error) {
                 hideProcessingOverlay();
-                showStatus(`Error: ${error.message}`, 'error');
+                showErrorAlert(`Error: ${error.message}`);
                 processBtn.disabled = false;
             }
         });

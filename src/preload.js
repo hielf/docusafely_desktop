@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   windowMaximize: () => ipcRenderer.send('window-maximize'),
   windowClose: () => ipcRenderer.send('window-close'),
   windowIsMaximized: () => ipcRenderer.invoke('window-is-maximized'),
+  windowSetSize: ({ width, height }) => ipcRenderer.invoke('window-set-size', { width, height }),
   // Event listeners
   onMenuAction: (callback) => ipcRenderer.on('menu-action', (event, action) => callback(action)),
   onDockAction: (callback) => ipcRenderer.on('dock-action', (event, action) => callback(action)),
