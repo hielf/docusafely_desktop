@@ -324,7 +324,12 @@ ipcMain.handle('select-input-file', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openFile'],
     filters: [
-      { name: 'Documents', extensions: ['txt', 'csv', 'pdf', 'doc', 'docx', 'xls', 'xlsx'] },
+      { name: 'All Documents', extensions: ['txt', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'rtf', 'md'] },
+      { name: 'Word Documents', extensions: ['doc', 'docx'] },
+      { name: 'Excel Spreadsheets', extensions: ['xls', 'xlsx'] },
+      { name: 'PowerPoint Presentations', extensions: ['ppt', 'pptx'] },
+      { name: 'PDF Files', extensions: ['pdf'] },
+      { name: 'Text Files', extensions: ['txt', 'rtf', 'md'] },
       { name: 'All Files', extensions: ['*'] }
     ]
   });
@@ -338,8 +343,12 @@ ipcMain.handle('select-input-file', async () => {
 ipcMain.handle('select-output-file', async (_event, { defaultFilename } = {}) => {
   const dialogOptions = {
     filters: [
+      { name: 'All Documents', extensions: ['txt', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'rtf', 'md'] },
+      { name: 'Word Documents', extensions: ['doc', 'docx'] },
+      { name: 'Excel Spreadsheets', extensions: ['xls', 'xlsx'] },
+      { name: 'PowerPoint Presentations', extensions: ['ppt', 'pptx'] },
       { name: 'PDF Files', extensions: ['pdf'] },
-      { name: 'Text/CSV Files', extensions: ['txt', 'csv'] },
+      { name: 'Text Files', extensions: ['txt', 'rtf', 'md'] },
       { name: 'All Files', extensions: ['*'] }
     ]
   };
@@ -440,23 +449,48 @@ ipcMain.handle('process-document', async (event, { inputPath, outputPath, policy
             });
           }
         } else {
-          // Try to parse stderr to extract log file location
+          // Try to parse stdout as JSON first (processor may output JSON error result)
+          let errorResult = null;
           let logFile = null;
+
           try {
-            const logMatch = stderr.match(/Debug log saved to: (.+)$/m);
-            if (logMatch) {
-              logFile = logMatch[1].trim();
+            const parsed = JSON.parse(stdout);
+            if (parsed && typeof parsed === 'object') {
+              errorResult = parsed;
+              logFile = parsed.log_file || null;
             }
           } catch (e) {
-            // Ignore parsing errors
+            // stdout is not JSON, continue with stderr parsing
           }
 
-          resolve({
-            status: 'error',
-            message: 'Processor failed',
-            error: stderr || stdout,
-            log_file: logFile
-          });
+          // If no log file from JSON, try to parse stderr
+          if (!logFile) {
+            try {
+              // Match both formats: "[DocuSafely] Debug log saved to: ..." and "Debug log saved to: ..."
+              const logMatch = stderr.match(/(?:\[DocuSafely\]\s*)?Debug log saved to:\s*(.+)$/m);
+              if (logMatch) {
+                logFile = logMatch[1].trim();
+              }
+            } catch (e) {
+              // Ignore parsing errors
+            }
+          }
+
+          // Use parsed JSON result if available, otherwise construct error result
+          if (errorResult) {
+            // Ensure log_file is included even if not in original result
+            if (logFile && !errorResult.log_file) {
+              errorResult.log_file = logFile;
+            }
+            resolve(errorResult);
+          } else {
+            resolve({
+              status: 'error',
+              message: 'Processor failed',
+              error: stderr || stdout,
+              log_file: logFile
+            });
+          }
         }
       });
       proc.on('error', (_error) => {

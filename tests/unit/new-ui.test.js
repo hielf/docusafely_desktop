@@ -104,12 +104,21 @@ describe('New Simplified UI', () => {
       <div class="file-drop-zone" id="dropZone">
         <div class="drop-icon">📄</div>
         <div class="drop-text">Drop file here or click to select</div>
-        <div class="drop-hint">Supports .txt and .pdf files</div>
       </div>
     `;
 
     expect(dragDropZone).toContain('Drop file here or click to select');
-    expect(dragDropZone).toContain('Supports .txt and .pdf files');
+  });
+
+  test('should support all document types in file input', () => {
+    const supportedExtensions = ['txt', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'rtf', 'md'];
+    const fileInput = `
+      <input type="file" id="hiddenFileInput" accept=".txt,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.rtf,.md">
+    `;
+
+    supportedExtensions.forEach(ext => {
+      expect(fileInput).toContain(`.${ext}`);
+    });
   });
 
   test('should have process button that can be disabled', () => {

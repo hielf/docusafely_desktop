@@ -647,6 +647,8 @@
             font-size: 14px;
             color: #666;
             line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
 
         body[data-theme="dark"] .error-alert-body {
@@ -910,7 +912,8 @@
         <div class="content">
             <div class="panel">
                 <!-- Hidden file input -->
-                <input type="file" id="hiddenFileInput" accept=".txt,.pdf" style="display: none;">
+                <input type="file" id="hiddenFileInput" accept=".txt,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.rtf,.md"
+                    style="display: none;">
 
                 <!-- Drag and drop zone -->
                 <div class="file-drop-zone" id="dropZone">
@@ -1011,6 +1014,9 @@
         const errorAlertMessage = document.getElementById('errorAlertMessage');
         const errorAlertOkBtn = document.getElementById('errorAlertOkBtn');
 
+        // Supported file extensions
+        const SUPPORTED_EXTENSIONS = ['txt', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'rtf', 'md'];
+
         // Entity catalog
         const ENTITY_CATALOG = [
             { key: 'person_name', label: 'Person Name' },
@@ -1026,6 +1032,17 @@
             { key: 'health', label: 'Health Information' },
             { key: 'metadata', label: 'Metadata/IDs' }
         ];
+
+        // Helper function to validate file extension
+        function isValidFileExtension(filePath) {
+            const ext = filePath.toLowerCase().split('.').pop();
+            return SUPPORTED_EXTENSIONS.includes(ext);
+        }
+
+        // Helper function to get supported file types description
+        function getSupportedFileTypesDescription() {
+            return '.txt, .pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx, .rtf, .md';
+        }
 
         // Security levels
         const SECURITY_LEVELS = {
@@ -1076,9 +1093,8 @@
                         try {
                             const filePath = await window.electronAPI.selectInputFile();
                             if (filePath) {
-                                const ext = filePath.toLowerCase().split('.').pop();
-                                if (ext !== 'txt' && ext !== 'pdf') {
-                                    showErrorAlert('Please select a .txt or .pdf file');
+                                if (!isValidFileExtension(filePath)) {
+                                    showErrorAlert(`Please select a supported file. ${getSupportedFileTypesDescription()}`);
                                     return;
                                 }
                                 handleFileSelect(filePath);
@@ -1095,6 +1111,7 @@
 
         // Show error alert popup
         function showErrorAlert(message) {
+            // Preserve newlines and escape HTML for security
             errorAlertMessage.textContent = message;
             errorAlertOverlay.classList.add('active');
         }
@@ -1226,9 +1243,8 @@
                 try {
                     const filePath = await window.electronAPI.selectInputFile();
                     if (filePath) {
-                        const ext = filePath.toLowerCase().split('.').pop();
-                        if (ext !== 'txt' && ext !== 'pdf') {
-                            showErrorAlert('Please select a .txt or .pdf file');
+                        if (!isValidFileExtension(filePath)) {
+                            showErrorAlert(`Please select a supported file. ${getSupportedFileTypesDescription()}`);
                             return;
                         }
                         handleFileSelect(filePath);
@@ -1243,9 +1259,8 @@
         hiddenFileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (file) {
-                const ext = file.name.toLowerCase().split('.').pop();
-                if (ext !== 'txt' && ext !== 'pdf') {
-                    showErrorAlert('Please select a .txt or .pdf file');
+                if (!isValidFileExtension(file.name)) {
+                    showErrorAlert(`Please select a supported file. ${getSupportedFileTypesDescription()}`);
                     return;
                 }
                 // HTML file input doesn't provide full paths in Electron with context isolation
@@ -1277,9 +1292,8 @@
 
             const file = e.dataTransfer.files[0];
             if (file) {
-                const ext = file.name.toLowerCase().split('.').pop();
-                if (ext !== 'txt' && ext !== 'pdf') {
-                    showErrorAlert('Please select a .txt or .pdf file');
+                if (!isValidFileExtension(file.name)) {
+                    showErrorAlert(`Please select a supported file. ${getSupportedFileTypesDescription()}`);
                     return;
                 }
 
@@ -1434,7 +1448,17 @@
                     hideProcessingOverlay();
                 } else {
                     hideProcessingOverlay();
-                    showErrorAlert(`Error: ${result.message}`);
+                    let errorMessage = `Error: ${result.message}`;
+                    if (result.log_file) {
+                        errorMessage += `\n\nDebug log: ${result.log_file}`;
+                    } else if (result.error) {
+                        // Include error details if no log file is available
+                        const errorText = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
+                        if (errorText && errorText.length > 0 && errorText.length < 500) {
+                            errorMessage += `\n\nDetails: ${errorText}`;
+                        }
+                    }
+                    showErrorAlert(errorMessage);
                     processBtn.disabled = false;
                 }
             } catch (error) {
