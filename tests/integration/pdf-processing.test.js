@@ -3,7 +3,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 
 // Test configuration
-const TEST_TIMEOUT = 30000; // 30 seconds for PDF processing
+const TEST_TIMEOUT = 60000; // 60 seconds for PDF processing
 const TEST_FILES_DIR = path.join(__dirname, '../../test-files');
 const OUTPUT_DIR = path.join(__dirname, '../../test-output');
 

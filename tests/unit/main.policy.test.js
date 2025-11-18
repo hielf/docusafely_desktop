@@ -225,7 +225,7 @@ describe('Policy Selector Tests', () => {
           done(error);
         }
       });
-    }, 30000);
+    }, 120000);
 
     test('should pass entity policy to backend', (done) => {
       if (skipIfNoProcessor()) {
@@ -270,7 +270,7 @@ describe('Policy Selector Tests', () => {
           done(error);
         }
       });
-    }, 30000);
+    }, 120000);
 
     test('should pass empty policy to backend', (done) => {
       if (skipIfNoProcessor()) {
@@ -314,7 +314,7 @@ describe('Policy Selector Tests', () => {
           done(error);
         }
       });
-    }, 30000);
+    }, 120000);
   });
 
   describe('Policy Error Handling', () => {

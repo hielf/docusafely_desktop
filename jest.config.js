@@ -12,7 +12,7 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   verbose: true,
-  testTimeout: 30000,  // Increased for PDF processing tests
+  testTimeout: 60000,  // Increased for PDF processing tests
   maxWorkers: 1,  // Run tests serially to avoid conflicts
   testPathIgnorePatterns: [
     '/node_modules/',

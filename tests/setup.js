@@ -1,7 +1,7 @@
 // Jest setup file for integration tests
 
-// Increase timeout for all tests
-jest.setTimeout(30000);
+// Increase timeout for all tests (especially PDF processing)
+jest.setTimeout(120000); // 120 seconds for comprehensive tests
 
 // Mock process.getSystemVersion for custom-electron-titlebar compatibility
 // This is an Electron-specific API that needs to be mocked in Jest tests

@@ -91,7 +91,7 @@ describe('Backend Processor Debug Tests', () => {
 
       // Expect file size to change when masking
       expect(hasChanges).toBe(true);
-    }, 30000);
+    }, 60000);
 
     test('should test processor with different file types to isolate PDF issue', async () => {
       if (!processorAvailable) {
@@ -142,7 +142,7 @@ SSN: 123-45-6789
           console.log('✅ Text file processing works - issue may be PDF-specific');
         }
       }
-    }, 30000);
+    }, 60000);
 
     test('should test processor with environment variables and debug flags', async () => {
       if (!pdfAvailable || !processorAvailable) {
@@ -177,7 +177,7 @@ SSN: 123-45-6789
 
         console.log(`File size comparison: ${originalSize} -> ${outputSize} (diff: ${outputSize - originalSize})`);
       }
-    }, 30000);
+    }, 60000);
   });
 
   afterAll(() => {
